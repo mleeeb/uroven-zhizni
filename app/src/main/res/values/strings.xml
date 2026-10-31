@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Уровень жизни</string>
+    <string name="channel_name">Напоминания</string>
+    <string name="channel_desc">Вечернее напоминание записать день и сроки заданий</string>
+</resources>

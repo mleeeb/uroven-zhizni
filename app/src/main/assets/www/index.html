@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Уровень жизни</title>
+<style>
+@font-face{font-family:'Press Start 2P';src:url('fonts/PressStart2P-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url('fonts/IBMPlexMono-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url('fonts/IBMPlexMono-Medium.ttf') format('truetype');font-weight:500;font-display:swap}
+@font-face{font-family:'IBM Plex Mono';src:url('fonts/IBMPlexMono-SemiBold.ttf') format('truetype');font-weight:600;font-display:swap}
+html,body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{overscroll-behavior-y:none}
+/* Layout: one-column game screen (max 480px), hero stage centered, game windows below, fixed bottom nav. Single dark "night RPG" world by choice. */
+:root{
+  --bg:#1B1E3A; --bg2:#151833; --panel:#252A50; --panel2:#2F355F;
+  --ink:#F4F1DE; --dim:#B3B2CC; --shadow:#0C0E22;
+  --gold:#F2CC8F; --coral:#E07A5F; --sage:#81B29A; --steel:#3D5A80; --sky:#8FB3E0;
+  --px:'Press Start 2P', 'Courier New', monospace;
+  --body:'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg2)}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.px{font-family:var(--px);letter-spacing:.02em;line-height:1.7}
+.app{max-width:480px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(96px + env(safe-area-inset-bottom,0px))}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0;background:var(--bg)}
+.brand{font-family:var(--px);font-size:10px;color:var(--gold)}
+.btn-text{background:none;border:0;font-family:var(--px);font-size:9px;color:var(--dim);padding:8px 0}
+.btn-text:hover{color:var(--ink)}
+
+.banner{display:flex;flex-direction:column;gap:10px;border:3px dashed var(--gold);padding:12px;margin-bottom:16px;font-size:14px}
+.banner b{color:var(--gold)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--px);font-size:10px;line-height:1.4;padding:11px 14px;background:var(--gold);color:#1B1E3A;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--shadow);text-transform:uppercase}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+.btn.ghost{background:var(--panel2);color:var(--ink)}
+.btn.danger{background:var(--coral);color:#1B1E3A}
+.btn.wide{width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* hero */
+.hero-head{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:4px}
+.hero-name{font-family:var(--px);font-size:16px;text-wrap:balance;word-break:break-word}
+.hero-lvl{font-family:var(--px);font-size:11px;color:var(--sage)}
+.hero-lvl b{font-size:34px;color:var(--gold);font-weight:400;vertical-align:-4px;margin-left:6px}
+.stage{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;padding:14px 0 6px}
+.center{display:flex;flex-direction:column;align-items:center}
+.side{display:flex;flex-direction:column;gap:10px;min-width:0;position:relative;z-index:1}
+.slot{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;min-width:0;padding:8px 4px;background:var(--panel);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--shadow);color:var(--ink)}
+.slot.empty{border-style:dashed;background:transparent;box-shadow:none;color:var(--dim)}
+.slot svg{width:24px;height:24px;shape-rendering:crispEdges}
+.slot .sl{font-family:var(--px);font-size:7px;color:var(--dim)}
+.slot .sv{font-size:13px;font-weight:600;line-height:1.3;word-break:break-word;font-variant-numeric:tabular-nums}
+.slot .ss{font-family:var(--px);font-size:6px;line-height:1.5}
+.sec-title{font-family:var(--px);font-size:10px;color:var(--gold);margin:28px 0 12px;display:flex;align-items:center;gap:10px}
+.sec-title::after{content:"";flex:1;height:3px;background:repeating-linear-gradient(90deg,var(--panel2) 0 6px,transparent 6px 10px)}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:13px;margin:0}
+.kv dt{color:var(--dim)} .kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.stage::before{content:"";position:absolute;left:50%;top:6px;width:220px;height:220px;transform:translateX(-50%);background:
+  radial-gradient(circle,var(--panel2) 0 1px,transparent 1.5px) 0 0/22px 22px;opacity:.9;pointer-events:none}
+.sprite{position:relative;image-rendering:pixelated;image-rendering:crisp-edges;width:144px;height:198px;animation:bob 1.2s steps(2) infinite}
+.pedestal{position:relative;width:150px;height:14px;background:var(--steel);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--shadow);margin-top:-6px}
+@keyframes bob{50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){.sprite{animation:none}}
+.gear{display:block;margin:12px auto 4px;background:none;border:0;font-family:var(--px);font-size:8px;line-height:2;color:var(--dim);text-align:center;padding:4px 8px}
+.gear:hover{color:var(--ink)}
+.gear span{color:var(--gold)}
+
+.meters{display:flex;flex-direction:column;gap:8px;margin:16px 0 20px}
+.mlabel{display:flex;justify-content:space-between;gap:8px;font-family:var(--px);font-size:8px;color:var(--ink)}
+.mlabel span{color:var(--dim)}
+.pbar{height:18px;border:3px solid var(--ink);padding:2px;background:var(--bg2)}
+.pbar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--gold) 0 8px,var(--coral) 8px 10px)}
+.pbar.xp i{background:repeating-linear-gradient(90deg,var(--sage) 0 8px,var(--steel) 8px 10px)}
+.rank-line{display:flex;align-items:center;gap:12px;margin-top:4px}
+.rank{flex:none;width:44px;height:44px;display:grid;place-items:center;font-family:var(--px);font-size:18px;background:var(--panel2);border:3px solid var(--gold);color:var(--gold)}
+.rank-line p{margin:0;font-size:13px;color:var(--dim)}
+.rank-line p b{color:var(--ink);font-weight:500}
+
+/* windows */
+.box{background:var(--panel);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--shadow);padding:14px;margin-bottom:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.box h2{font-family:var(--px);font-size:11px;margin:0;color:var(--gold);font-weight:400;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.box h2 small{font-size:8px;color:var(--dim)}
+.eyebrow{font-family:var(--px);font-size:8px;color:var(--sage)}
+.muted{color:var(--dim);font-size:13px;margin:0}
+
+/* quests */
+.qlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.q{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-top:2px dashed var(--panel2)}
+.q:first-child{border-top:0;padding-top:0}
+.check{width:26px;height:26px;border:3px solid var(--ink);background:var(--bg2);padding:0;display:grid;place-items:center;font-family:var(--px);font-size:10px;color:var(--bg)}
+.check.on{background:var(--sage)}
+.q-title{font-size:15px;word-break:break-word}
+.q.done .q-title{text-decoration:line-through;color:var(--dim)}
+.q-meta{font-family:var(--px);font-size:7px;color:var(--dim);margin-top:4px}
+.q-meta .late{color:var(--coral)}
+.q-meta .soon{color:var(--gold)}
+.q-xp{font-family:var(--px);font-size:8px;color:var(--gold);white-space:nowrap;padding-top:4px}
+.x{background:none;border:0;color:var(--dim);font-family:var(--px);font-size:10px;padding:4px 2px}
+.x:hover{color:var(--coral)}
+details summary{cursor:pointer;font-family:var(--px);font-size:8px;color:var(--dim);list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"► "}
+details[open] summary::before{content:"▼ "}
+.xp-table{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px;font-size:13px}
+.xp-table li{display:flex;justify-content:space-between;gap:10px}
+.xp-table b{font-family:var(--px);font-size:8px;color:var(--gold);font-weight:400}
+
+.mainq{cursor:pointer;text-decoration:none;color:inherit}
+.mainq .title{font-size:16px;font-weight:500;word-break:break-word}
+
+/* stats */
+.stat-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.chip{font-family:var(--px);font-size:7px;padding:6px 8px;border:2px solid currentColor;white-space:nowrap}
+.tone-good{color:var(--sage)} .tone-mid{color:var(--gold)} .tone-low{color:var(--coral)} .tone-none{color:var(--dim)}
+.big{font-family:var(--px);font-size:26px;color:var(--ink);line-height:1.2;font-variant-numeric:tabular-nums}
+.big small{font-family:var(--body);font-size:13px;color:var(--dim);margin-left:6px}
+.gauge{position:relative;height:16px;background:var(--bg2);border:3px solid var(--ink)}
+.gauge .band{position:absolute;top:0;bottom:0;background:var(--steel)}
+.gauge .mark{position:absolute;top:-8px;width:6px;height:26px;margin-left:-3px;background:var(--gold);border:2px solid var(--ink)}
+.gscale{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:-4px}
+.gscale b{color:var(--ink);font-weight:500}
+.how{font-size:12px;color:var(--dim);margin:0}
+.inrow{display:flex;gap:8px}
+.inrow input{min-width:0;flex:1}
+.field{width:100%;background:var(--bg2);border:3px solid var(--ink);padding:9px 10px;font-size:15px;border-radius:0}
+.field:focus{border-color:var(--gold);outline:none}
+textarea.field{resize:vertical;min-height:90px}
+.spark{display:block;width:100%;height:46px}
+.src{font-size:11px;color:var(--dim);margin:0}
+
+/* dream */
+.dream-title{font-size:20px;font-weight:600;margin:0;line-height:1.35;word-break:break-word}
+.why{margin:0;color:var(--dim);font-style:italic}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.trophy{display:flex;gap:14px;align-items:center}
+.past{list-style:none;padding:0;margin:0;display:grid;gap:6px;font-size:13px}
+
+/* calendar */
+.cal-head{display:flex;justify-content:space-between;align-items:center}
+.cal-head .px{font-size:10px}
+.navbtn{width:36px;height:36px;border:3px solid var(--ink);background:var(--panel2);font-family:var(--px);font-size:10px;color:var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .wd{font-family:var(--px);font-size:7px;color:var(--dim);text-align:center;padding:4px 0}
+.day{position:relative;aspect-ratio:1;max-width:100%;border:2px solid var(--panel2);background:var(--bg2);font-size:13px;display:flex;align-items:flex-start;justify-content:flex-start;padding:3px 5px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.day.out{visibility:hidden}
+.day.today{border-color:var(--gold)}
+.day.sel{background:var(--gold);color:#1B1E3A;border-color:var(--ink)}
+.day .dots{position:absolute;left:5px;right:5px;bottom:4px;display:flex;gap:3px;flex-wrap:wrap}
+.day .dots i{width:6px;height:6px;background:var(--sage)}
+.day .dots i.k-quest,.day .dots i.k-step,.day .dots i.k-dream{background:var(--gold)}
+.day .dots i.k-record{background:var(--coral)}
+.day .dots i.k-plan{background:var(--dim)}
+.day.sel .dots i{outline:1px solid #1B1E3A}
+
+/* feed */
+.lvl-sep{display:flex;align-items:center;gap:10px;margin:22px 0 12px;font-family:var(--px);font-size:9px;color:var(--gold)}
+.lvl-sep::after{content:"";flex:1;height:3px;background:repeating-linear-gradient(90deg,var(--panel2) 0 6px,transparent 6px 10px)}
+.lvl-sep .r{border:2px solid var(--gold);padding:4px 6px}
+.entry{background:var(--panel);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--shadow);padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.entry.auto{background:var(--bg2);border-style:dashed;box-shadow:none}
+.entry-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:var(--px);font-size:7px;color:var(--dim)}
+.tag{padding:4px 6px;border:2px solid currentColor}
+.tag.k-wealth{color:var(--sky)}
+.day .dots i.k-wealth{background:var(--sky)}
+.tag.k-manual{color:var(--sage)} .tag.k-quest,.tag.k-step,.tag.k-dream{color:var(--gold)} .tag.k-record{color:var(--coral)} .tag.k-plan,.tag.k-start{color:var(--dim)}
+.entry p{margin:0;white-space:pre-wrap;word-break:break-word}
+.entry img{display:block;width:100%;max-height:360px;object-fit:cover;border:3px solid var(--ink);image-rendering:auto}
+.entry-foot{display:flex;justify-content:space-between;align-items:center;font-family:var(--px);font-size:8px;color:var(--gold)}
+.empty{border:3px dashed var(--panel2);padding:18px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bg2);border-top:3px solid var(--ink);padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.nav-in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 2px;color:var(--dim);text-decoration:none;font-family:var(--px);font-size:7px;border:2px solid transparent}
+.nav a svg{width:20px;height:20px;shape-rendering:crispEdges}
+.nav a.on{color:var(--gold);border-color:var(--gold);background:var(--panel)}
+
+/* modal */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(8,9,24,.78);display:flex;align-items:flex-end;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px))}
+.sheet{width:100%;max-width:480px;max-height:100%;overflow-y:auto;background:var(--panel);border:3px solid var(--ink);border-bottom:0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+@media (min-width:600px){.overlay{align-items:center;padding-bottom:16px}.sheet{border-bottom:3px solid var(--ink);box-shadow:6px 6px 0 var(--shadow)}}
+.sheet h3{font-family:var(--px);font-size:12px;color:var(--gold);margin:0;font-weight:400}
+.lbl{display:flex;flex-direction:column;gap:6px;font-family:var(--px);font-size:8px;color:var(--dim)}
+.err{color:var(--coral);font-size:13px;margin:0}
+.seg{display:flex;gap:8px}
+.seg label{flex:1}
+.seg input,.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.seg span{display:block;text-align:center;padding:10px;border:3px solid var(--panel2);background:var(--bg2);font-family:var(--px);font-size:9px;color:var(--ink);cursor:pointer}
+.seg input:checked+span{border-color:var(--gold);color:var(--gold)}
+.seg input:focus-visible+span,.sw input:focus-visible+span{outline:3px solid var(--gold);outline-offset:2px}
+.sw{display:flex;gap:8px;flex-wrap:wrap}
+.sw label{position:relative}
+.sw span{display:block;width:32px;height:32px;border:3px solid var(--panel2);cursor:pointer}
+.sw input:checked+span{border-color:var(--ink);box-shadow:0 0 0 3px var(--gold)}
+.look{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center}
+.look canvas{width:96px;height:132px;image-rendering:pixelated;background:var(--bg2);border:3px solid var(--panel2)}
+.photo-prev img{max-width:100%;max-height:200px;border:3px solid var(--ink)}
+.chk{display:flex;gap:10px;align-items:center;font-size:14px}
+.chk input{width:20px;height:20px;accent-color:var(--gold)}
+
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--gold);color:#1B1E3A;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--shadow);font-family:var(--px);font-size:9px;line-height:1.6;padding:10px 14px;max-width:calc(100% - 32px);text-align:center}
+.toast.levelup{background:var(--sage)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <span class="brand">УРОВЕНЬ ЖИЗНИ</span>
+    <button class="btn-text" id="profileBtn" data-act="profile">ПРОФИЛЬ</button>
+  </header>
+  <div id="banner"></div>
+  <main id="view"></main>
+</div>
+
+<nav class="nav" aria-label="Разделы">
+  <div class="nav-in">
+    <a href="#hero" data-v="hero"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="2" y="0" width="4" height="3" fill="currentColor"/><rect x="1" y="4" width="6" height="4" fill="currentColor"/></svg>ГЕРОЙ</a>
+    <a href="#stats" data-v="stats"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="0" y="5" width="2" height="3" fill="currentColor"/><rect x="3" y="2" width="2" height="6" fill="currentColor"/><rect x="6" y="0" width="2" height="8" fill="currentColor"/></svg>СТАТЫ</a>
+    <a href="#dream" data-v="dream"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="1" y="0" width="1" height="8" fill="currentColor"/><rect x="2" y="0" width="5" height="2" fill="currentColor"/><rect x="2" y="2" width="3" height="2" fill="currentColor"/></svg>МЕЧТА</a>
+    <a href="#life" data-v="life"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="0" y="1" width="8" height="2" fill="currentColor"/><rect x="0" y="3" width="1" height="5" fill="currentColor"/><rect x="7" y="3" width="1" height="5" fill="currentColor"/><rect x="0" y="7" width="8" height="1" fill="currentColor"/><rect x="2" y="4" width="1" height="1" fill="currentColor"/><rect x="4" y="4" width="1" height="1" fill="currentColor"/><rect x="2" y="5" width="1" height="1" fill="currentColor"/></svg>ЛЕНТА</a>
+  </div>
+</nav>
+<div id="modalRoot"></div>
+<input type="file" id="restoreFile" hidden aria-hidden="true">
+<div id="toastRoot"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- dates ---------- */
+const DAY=864e5;
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const a=String(s).split('-').map(Number);return new Date(a[0],a[1]-1,a[2]);};
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d;};
+const todayIso=()=>iso(today());
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const diffDays=(a,b)=>Math.round((b-a)/DAY);
+function ageAt(birth,date){let a=date.getFullYear()-birth.getFullYear();const bd=new Date(date.getFullYear(),birth.getMonth(),birth.getDate());if(date<bd)a--;return a;}
+const turnDate=(birth,age)=>new Date(birth.getFullYear()+age,birth.getMonth(),birth.getDate());
+const MON_GEN=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MON_NOM=['ЯНВАРЬ','ФЕВРАЛЬ','МАРТ','АПРЕЛЬ','МАЙ','ИЮНЬ','ИЮЛЬ','АВГУСТ','СЕНТЯБРЬ','ОКТЯБРЬ','НОЯБРЬ','ДЕКАБРЬ'];
+const fmtDate=s=>{const d=parse(s);return d.getDate()+' '+MON_GEN[d.getMonth()]+' '+d.getFullYear();};
+function plural(n,a,b,c){const m10=n%10,m100=n%100;if(m10===1&&m100!==11)return a;if(m10>=2&&m10<=4&&(m100<12||m100>14))return b;return c;}
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+
+/* ---------- game rules ---------- */
+const XP={manual:5,photo:5,quest:{s:30,m:80,l:200},step:40,dream:500,record:20,wealth:30};
+const RANKS=[
+  {r:'D',min:0,name:'Год-разминка',gear:''},
+  {r:'C',min:300,name:'Год в пути',gear:'головной убор'},
+  {r:'B',min:800,name:'Хороший год',gear:'вещь за спину'},
+  {r:'A',min:1600,name:'Яркий год',gear:'предмет в руку'},
+  {r:'S',min:3000,name:'Легендарный год',gear:'награду над головой'}];
+function rankIdx(xp){let i=0;RANKS.forEach((r,k)=>{if(xp>=r.min)i=k;});return i;}
+const QSIZE={s:{label:'МАЛОЕ',hint:'на неделю'},m:{label:'СРЕДНЕЕ',hint:'на месяцы'},l:{label:'БОЛЬШОЕ',hint:'событие года'}};
+/* XP per record and per wealth change is limited: once per stat per CAP days. Diary XP: first entry of the day only. */
+const CAP={record:7,wealth:30};
+const GEAR={
+  head:{rank:1,label:'ГОЛОВА',opts:{band:'Повязка',cap:'Кепка',none:'Ничего'}},
+  back:{rank:2,label:'ЗА СПИНОЙ',opts:{cape:'Плащ',pack:'Рюкзак',none:'Ничего'}},
+  hand:{rank:3,label:'В РУКЕ',opts:{sword:'Меч',dumbbell:'Гантель',none:'Ничего'}},
+  top:{rank:4,label:'НАГРАДА',opts:{crown:'Корона',wreath:'Венок',none:'Ничего'}}};
+const gearOf=look=>Object.assign({head:'band',back:'cape',hand:'sword',top:'crown'},(look&&look.gear)||{});
+function gearNames(look,rIdx){const g=gearOf(look);return Object.keys(GEAR).filter(k=>rIdx>=GEAR[k].rank&&g[k]!=='none').map(k=>GEAR[k].opts[g[k]].toLowerCase());}
+const KIND_LABEL={manual:'ЗАПИСЬ',quest:'ЗАДАНИЕ',step:'ШАГ МЕЧТЫ',dream:'МЕЧТА',record:'РЕКОРД',wealth:'ДОСТАТОК',plan:'В ПЛАНАХ',start:'СТАРТ'};
+
+/* ---------- wealth (Russia) ---------- */
+const RU={medGross:73871,avgGross:100360,pm:18939,area:28.8,social:18,net:0.87};
+const RU_MED=Math.round(RU.medGross*RU.net),RU_AVG=Math.round(RU.avgGross*RU.net);
+const HOME_LABEL={own:'своё',mortgage:'ипотека',rent:'аренда',parents:'у родителей'};
+const rub=v=>Math.round(v).toLocaleString('ru-RU')+' ₽';
+const rubShort=v=>v>=1e6?(v/1e6).toFixed(1).replace('.',',')+' млн ₽':v>=1000?Math.round(v/1000)+' тыс ₽':Math.round(v)+' ₽';
+const num1=v=>(Math.round(v*10)/10).toLocaleString('ru-RU');
+function wealth(f){
+  if(!f)return null;const ppl=Math.max(1,f.people||1);const o={};
+  if(f.income){const v=f.income;o.income={v,max:RU_AVG*2,band:[RU_MED,RU_AVG]};
+    if(v>=RU_AVG){o.income.rating='ВЫШЕ СРЕДНЕЙ';o.income.tone='good';}else if(v>=RU_MED){o.income.rating='ВЫШЕ МЕДИАНЫ';o.income.tone='good';}
+    else if(v>=RU_MED*0.75){o.income.rating='ОКОЛО МЕДИАНЫ';o.income.tone='mid';}else{o.income.rating='НИЖЕ МЕДИАНЫ';o.income.tone='low';}}
+  const fam=f.familyIncome||f.income;
+  if(fam){const pc=fam/ppl,x=pc/RU.pm;o.pm={pc,x,max:8,band:[2,3.5]};
+    if(x<1){o.pm.rating='НИЖЕ ПРОЖ. МИНИМУМА';o.pm.short='ТРУДНО';o.pm.tone='low';}else if(x<2){o.pm.rating='СКРОМНЫЙ';o.pm.short='СКРОМНО';o.pm.tone='low';}
+    else if(x<3.5){o.pm.rating='СРЕДНИЙ';o.pm.short='СРЕДНЕ';o.pm.tone='mid';}else if(x<6){o.pm.rating='ВЫШЕ СРЕДНЕГО';o.pm.short='ХОРОШО';o.pm.tone='good';}else{o.pm.rating='ВЫСОКИЙ';o.pm.short='ВЫСОКО';o.pm.tone='good';}}
+  if(f.area){const a=f.area/ppl;o.area={v:a,max:60,band:[RU.social,RU.area]};
+    if(a<RU.social){o.area.rating='ТЕСНЕЕ НОРМЫ';o.area.tone='low';}else if(a<RU.area*0.9){o.area.rating='НИЖЕ СРЕДНЕГО';o.area.tone='mid';}
+    else if(a<RU.area*1.3){o.area.rating='КАК В СРЕДНЕМ';o.area.tone='mid';}else{o.area.rating='ПРОСТОРНО';o.area.tone='good';}}
+  return o;}
+
+/* ---------- norms ---------- */
+function lerp(pts,a){if(a<=pts[0][0])return pts[0][1];for(let i=1;i<pts.length;i++){if(a<=pts[i][0]){const[x0,y0]=pts[i-1],[x1,y1]=pts[i];return y0+(y1-y0)*(a-x0)/(x1-x0);}}return pts[pts.length-1][1];}
+function phi(z){const t=1/(1+0.2316419*Math.abs(z));const d=0.3989423*Math.exp(-z*z/2);const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;}
+const SQ={m:[[20,50],[45,45],[77,30]],f:[[20,47],[45,42],[65,33],[77,27]]};
+const PU={m:{20:[36,29,22,17],30:[30,22,17,12],40:[25,17,13,10],50:[21,13,10,7],60:[18,11,8,5]},
+          f:{20:[30,21,15,10],30:[27,20,13,8],40:[24,15,11,5],50:[21,11,7,2],60:[17,12,5,2]}};
+const STAT_META={
+  squat:{title:'ПРИСЕДАНИЯ',unit:'раз за минуту',how:'Тест: сядь на стул и встань. Считай, сколько раз успеешь за 60 секунд.',src:'Норма: популяционное исследование 1-мин теста «сесть-встать» (Strassmann и соавт., 2013).'},
+  push:{title:'ОТЖИМАНИЯ',unit:'подряд без отдыха',how:'Тест: максимум отжиманий подряд, без пауз и с ровной спиной.',src:'Норма: шкала ACSM / Канадского теста физподготовки.'},
+  plank:{title:'ПЛАНКА',unit:'секунд',how:'Тест: планка на предплечьях, держи, пока тело ровное.',src:'Строгих научных норм по возрасту для планки нет, это ориентир.'},
+  cal:{title:'АКТИВНЫЕ КАЛОРИИ',unit:'ккал за день',how:'Смотри в фитнес-часах или приложении шагомера и вписывай раз в день.',src:'Норм по возрасту нет: здесь важен твой собственный ритм.'}};
+function norm(key,v,age,sex){
+  const a=Math.max(18,age);
+  if(key==='squat'){
+    const m=lerp(SQ[sex],a),sd=m*0.25,lo=Math.round(m-0.674*sd),hi=Math.round(m+0.674*sd);
+    const out={band:[lo,hi],max:Math.round(m*1.8),normText:lo+'–'+hi};
+    if(v==null)return out;
+    const p=phi((v-m)/sd)*100;
+    out.pct=Math.round(p);
+    if(p>=90){out.rating='ОТЛИЧНО';out.tone='good';}else if(p>=70){out.rating='ВЫШЕ СРЕДНЕГО';out.tone='good';}
+    else if(p>=30){out.rating='В НОРМЕ';out.tone='mid';}else if(p>=10){out.rating='НИЖЕ СРЕДНЕГО';out.tone='low';}else{out.rating='НАДО ПОДТЯНУТЬ';out.tone='low';}
+    return out;}
+  if(key==='push'){
+    const br=a<30?20:a<40?30:a<50?40:a<60?50:60;const t=PU[sex][br];
+    const out={band:[t[2],t[1]-1],max:Math.round(t[0]*1.5),normText:t[2]+'–'+(t[1]-1)};
+    if(v==null)return out;
+    if(v>=t[0]){out.rating='ОТЛИЧНО';out.tone='good';}else if(v>=t[1]){out.rating='ОЧЕНЬ ХОРОШО';out.tone='good';}
+    else if(v>=t[2]){out.rating='В НОРМЕ';out.tone='mid';}else if(v>=t[3]){out.rating='НИЖЕ НОРМЫ';out.tone='low';}else{out.rating='НАДО ПОДТЯНУТЬ';out.tone='low';}
+    return out;}
+  if(key==='plank'){
+    const f=a<40?1:a<60?0.8:0.6;const t=[30*f,60*f,120*f].map(Math.round);
+    const out={band:[t[1],t[2]],max:Math.round(t[2]*1.5),normText:t[1]+'–'+t[2]};
+    if(v==null)return out;
+    if(v>=t[2]){out.rating='ОТЛИЧНО';out.tone='good';}else if(v>=t[1]){out.rating='ХОРОШО';out.tone='mid';}
+    else if(v>=t[0]){out.rating='СРЕДНЕ';out.tone='mid';}else{out.rating='НАДО ПОДТЯНУТЬ';out.tone='low';}
+    return out;}
+  return null;}
+
+/* ---------- sprite ---------- */
+const SPRITE=[
+"................","................","....KKKKKKKK....","...KHHHHHHHHK...","...KHHHHHHHHK...","...KHSSSSSSHK...",
+"...KSSESSESSK...","...KSSSSSSSSK...","...KSSSMMSSSK...","....KSSSSSSK....",".....KKSSKK.....","...KKTTTTTTKK...",
+"..KTTTTTTTTTTK..","..KTKTTTTTTKTK..","..KSKTTTTTTKSK..","..KKKTTTTTTKKK..","....KPPPPPPK....","....KPPKKPPK....",
+"....KPPKKPPK....","....KBBKKBBK....","...KBBBKKBBBK...","...KKKK..KKKK..."];
+const SKIN=['#F2CC8F','#E0AC7E','#B97A56','#7A4E33'];
+const HAIR=['#2B1D14','#6B4226','#C98A3D','#E8D27A','#A33B2E'];
+const SHIRT=['#E07A5F','#3D5A80','#81B29A','#9B6BC9','#D9D4BE'];
+function drawHero(cv,look,age,rIdx){
+  const g=SPRITE.map(r=>r.split(''));
+  const set=(x,y,c,onlyEmpty)=>{if(y<0||y>=g.length||x<0||x>15)return;if(onlyEmpty&&g[y][x]!=='.')return;g[y][x]=c;};
+  if(look.beard){[4,5,10,11].forEach(x=>set(x,8,'H'));for(let x=5;x<=10;x++)set(x,9,'H');}
+  const G=gearOf(look);
+  if(rIdx>=1&&G.head==='band'){for(let x=4;x<=11;x++)set(x,4,'R');}
+  if(rIdx>=1&&G.head==='cap'){for(let x=4;x<=11;x++)set(x,2,'Q');for(let x=3;x<=12;x++)set(x,3,'Q');for(let x=8;x<=14;x++)set(x,4,'Q');}
+  if(rIdx>=2&&G.back==='cape'){for(let y=11;y<=18;y++)[1,2,13,14].forEach(x=>set(x,y,'C',true));}
+  if(rIdx>=2&&G.back==='pack'){for(let y=11;y<=17;y++)[0,1,2].forEach(x=>set(x,y,'G',true));}
+  if(rIdx>=3&&G.hand==='sword'){for(let y=6;y<=12;y++)set(14,y,'W');set(13,13,'Y');set(14,13,'Y');set(15,13,'Y');set(14,14,'N');}
+  if(rIdx>=3&&G.hand==='dumbbell'){for(let y=12;y<=16;y++)set(14,y,'W');[10,11,17,18].forEach(y=>{for(let x=13;x<=15;x++)set(x,y,'D');});}
+  if(rIdx>=4&&G.top==='crown'){[4,7,8,11].forEach(x=>set(x,0,'Y'));for(let x=4;x<=11;x++)set(x,1,'Y');}
+  if(rIdx>=4&&G.top==='wreath'){[3,5,7,8,10,12].forEach(x=>set(x,1,'L'));[2,13].forEach(x=>{set(x,2,'L');set(x,3,'L');});}
+  const pal={Q:'#6C9BD8',G:'#8A6A3B',D:'#9AA0C0',L:'#81B29A',K:'#0C0E22',S:SKIN[look.skin||0],H:age>=55?'#C9C9D6':HAIR[look.hair||0],E:'#0C0E22',M:'#8E3B46',T:SHIRT[look.shirt||0],
+    P:'#2C3E66',B:'#5A3E2B',R:'#E07A5F',C:'#8E3B46',W:'#DDE1EE',Y:'#F2CC8F',N:'#6B4226'};
+  const s=cv.width/16,ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);ctx.imageSmoothingEnabled=false;
+  g.forEach((row,y)=>row.forEach((c,x)=>{if(c==='.')return;ctx.fillStyle=pal[c];ctx.fillRect(x*s,y*s,s,s);}));}
+
+/* ---------- state ---------- */
+let S=emptyState();let mode='demo';let view='hero';let calMonth=null;let selDay=null;let lastRankShown=null;
+function emptyState(){return{profile:null,stats:{squat:[],push:[],plank:[],cal:[]},quests:[],dream:null,pastDreams:[],fin:null,settings:null,rev:0,events:[]};}
+function demoState(){
+  const t=today(),d=n=>iso(addDays(t,n));
+  return{profile:{name:'Герой',birth:iso(new Date(t.getFullYear()-28,t.getMonth()+4,12)),sex:'m',look:{skin:0,hair:1,shirt:0,beard:false}},
+    stats:{squat:[{d:d(-200),v:36},{d:d(-120),v:40},{d:d(-20),v:44}],push:[{d:d(-150),v:18},{d:d(-40),v:22}],plank:[{d:d(-90),v:55},{d:d(-15),v:75}],
+      cal:[-6,-5,-4,-3,-2,-1,0].map((n,i)=>({d:d(n),v:[420,380,510,260,610,450,390][i]}))},
+    quests:[{id:'q1',title:'Прыгнуть с парашютом',due:d(214),size:'l',done:false},{id:'q2',title:'Пробежать полумарафон',due:d(45),size:'m',done:false},{id:'q3',title:'Съездить на Байкал зимой',due:d(98),size:'l',done:false},
+      {id:'q4',title:'Выучить 300 слов на испанском',due:d(-50),done:true,doneAt:d(-60),eventId:'e3'},{id:'q5',title:'Прочитать 6 книг',due:d(-20),size:'m',done:true,doneAt:d(-25),eventId:'e9'}],
+    dream:{title:'Подняться на Эльбрус',why:'Хочу увидеть мир с самой высокой точки Европы и доказать себе, что могу.',steps:[
+      {id:'s1',text:'Сходить в первый поход с ночёвкой',done:true,eventId:'e5'},{id:'s2',text:'Пробегать 5 км без остановки',done:true,eventId:'e6'},
+      {id:'s3',text:'Купить ботинки и снаряжение',due:d(60),done:false},{id:'s4',text:'Найти группу и гида',due:d(120),done:false},{id:'s5',text:'Восхождение',due:d(250),done:false}]},
+    pastDreams:[],
+    fin:{income:85000,familyIncome:140000,people:2,area:54,home:'mortgage',car:{name:'Kia Rio',year:2018},hist:{income:[{d:d(-300),v:70000},{d:d(-70),v:85000}],area:[{d:d(-300),v:54}]}},
+    events:[
+      {id:'e13',date:d(-70),kind:'wealth',text:'Доход вырос: теперь 85 000 ₽ в месяц',xp:XP.wealth,c:11},
+      {id:'e1',date:d(-20),kind:'record',text:'Новый рекорд: приседания, 44 раза за минуту',xp:XP.record,c:1},
+      {id:'e2',date:d(-35),kind:'manual',text:'Первый раз пробежал 10 км. Медленно, но без остановок!',xp:XP.manual,c:2},
+      {id:'e3',date:d(-60),kind:'quest',text:'Задание выполнено: Выучить 300 слов на испанском',xp:XP.quest,c:3},
+      {id:'e5',date:d(-120),kind:'step',text:'Шаг к мечте: Сходить в первый поход с ночёвкой',xp:XP.step,c:4},
+      {id:'e6',date:d(-90),kind:'step',text:'Шаг к мечте: Пробегать 5 км без остановки',xp:XP.step,c:5},
+      {id:'e7',date:d(-10),kind:'manual',text:'Сходил на концерт любимой группы. Голос сорван, настроение отличное.',xp:XP.manual,c:6},
+      {id:'e9',date:d(-25),kind:'quest',text:'Задание выполнено: Прочитать 6 книг',xp:XP.quest,c:7},
+      {id:'e10',date:d(-300),kind:'manual',text:'Переехал в новую квартиру. Своя кухня!',xp:XP.manual,c:8},
+      {id:'e11',date:d(-400),kind:'quest',text:'Задание выполнено: Сдать на права',xp:XP.quest,c:9},
+      {id:'e12',date:d(12),kind:'manual',text:'День рождения мамы, купить билеты в театр',xp:XP.manual,c:10}]};}
+function applyCore(o){const e=emptyState();S.profile=o.profile||null;S.stats=Object.assign(e.stats,o.stats||{});S.quests=o.quests||[];
+  S.dream=o.dream||null;if(S.dream&&!Array.isArray(S.dream.steps))S.dream.steps=[];S.pastDreams=o.pastDreams||[];S.fin=o.fin||null;S.settings=o.settings||null;S.rev=o.rev||0;}
+function applyAll(o){S=emptyState();applyCore(o);S.events=o.events||[];}
+const core=()=>({profile:S.profile,stats:S.stats,quests:S.quests,dream:S.dream,pastDreams:S.pastDreams,fin:S.fin,settings:S.settings,rev:S.rev});
+
+/* ---------- derived ---------- */
+function heroInfo(){
+  const b=parse(S.profile.birth),t=today(),age=ageAt(b,t);
+  const start=turnDate(b,age),end=turnDate(b,age+1);
+  const total=diffDays(start,end),passed=diffDays(start,t);
+  return{age,start,end,left:diffDays(t,end),prog:Math.min(100,Math.max(0,passed/total*100))};}
+const levelOf=s=>ageAt(parse(S.profile.birth),parse(s));
+/* XP is computed from the rules every time (not stored), so a rebalance applies to old entries too. */
+function xpMap(){
+  const out={},dayUsed={},lastStat={};
+  S.events.slice().sort((a,b)=>a.date===b.date?(a.c||0)-(b.c||0):(a.date<b.date?-1:1)).forEach(e=>{
+    let v=0;
+    if(e.kind==='quest')v=XP.quest[e.size||'m']||XP.quest.m;
+    else if(e.kind==='step')v=XP.step;
+    else if(e.kind==='dream')v=XP.dream;
+    else if(e.kind==='manual'){if(!dayUsed[e.date]){dayUsed[e.date]=1;v=XP.manual+(e.photo||e.hasPhoto?XP.photo:0);}}
+    else if(e.kind==='record'||e.kind==='wealth'){const k=e.kind+':'+(e.stat||'');const lp=lastStat[k];
+      if(!lp||diffDays(parse(lp),parse(e.date))>=CAP[e.kind]){v=XP[e.kind];lastStat[k]=e.date;}}
+    out[e.id]=v;});
+  return out;}
+function xpOfLevel(l,m){m=m||xpMap();const t=todayIso();return S.events.filter(e=>e.date<=t&&levelOf(e.date)===l).reduce((s,e)=>s+(m[e.id]||0),0);}
+
+/* ---------- persistence (on this phone) ---------- */
+/* window.Native is the Android bridge (MainActivity). Without it (desktop browser) the app falls back to localStorage. */
+const N=window.Native||null;
+const LS_KEY='lifeRpg.v1';
+const PHOTO={};
+const stripEv=e=>{const o=Object.assign({},e);if(o.photo){o.hasPhoto=true;delete o.photo;}return o;};
+function photoOf(e){if(e.photo)return e.photo;if(!e.hasPhoto||!N)return null;
+  if(PHOTO[e.id]===undefined){let p=null;try{p=N.loadPhoto(e.id);}catch(x){}PHOTO[e.id]=p||null;}return PHOTO[e.id];}
+function storeLoad(){
+  try{
+    if(N){const c=N.loadCore();if(!c)return null;const o=JSON.parse(c);const ev=N.loadEvents();o.events=ev?JSON.parse(ev):[];return o;}
+    const r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null;
+  }catch(e){return null;}}
+function lsAll(){localStorage.setItem(LS_KEY,JSON.stringify(Object.assign(core(),{events:S.events})));}
+const saveFail=()=>toast('НЕ ПОЛУЧИЛОСЬ СОХРАНИТЬ. ПРОВЕРЬ СВОБОДНОЕ МЕСТО');
+function persistCore(){try{if(N){if(!N.saveCore(JSON.stringify(core())))saveFail();}else lsAll();}catch(e){saveFail();}}
+function persistEvents(){try{if(N){if(!N.saveEvents(JSON.stringify(S.events.map(stripEv))))saveFail();}else lsAll();}catch(e){saveFail();}}
+function storePhoto(ev){if(!N||!ev.photo)return;try{if(N.savePhoto(ev.id,ev.photo)){PHOTO[ev.id]=ev.photo;ev.hasPhoto=true;delete ev.photo;}else saveFail();}catch(e){saveFail();}}
+function saveCore(){if(mode==='demo')return;S.rev=Date.now();persistCore();syncReminders();}
+function saveEvent(ev){if(mode==='demo')return;storePhoto(ev);persistEvents();syncReminders();}
+function dropEvent(id){if(mode==='demo')return;if(N){try{N.deletePhoto(id);}catch(e){}}delete PHOTO[id];persistEvents();syncReminders();}
+
+/* reminders: the phone shows them; the page only tells it what to say */
+function remSettings(){return Object.assign({daily:true,time:'21:00',deadlines:true},(S.settings&&S.settings.remind)||{});}
+function syncReminders(){
+  if(!N||!N.setReminders)return;
+  if(mode==='demo'||!S.profile){try{N.setReminders(JSON.stringify({daily:false,deadlines:false}));}catch(e){}return;}
+  const r=remSettings(),t=todayIso();
+  const last=S.events.filter(e=>e.kind==='manual'&&e.date<=t).map(e=>e.date).sort().pop()||'';
+  try{N.setReminders(JSON.stringify({daily:!!r.daily,deadlines:!!r.deadlines,time:r.time,name:S.profile.name,lastEntry:last,
+    quests:S.quests.filter(q=>!q.done&&q.due).map(q=>({title:q.title,due:q.due}))}));}catch(e){}}
+
+/* backup to a file and restore from it */
+function doBackup(){
+  const data=Object.assign({app:'uroven-zhizni',version:1,exported:new Date().toISOString()},core(),
+    {events:S.events.map(e=>{const o=stripEv(e);delete o.hasPhoto;const p=photoOf(e);if(p)o.photo=p;return o;})});
+  const json=JSON.stringify(data),name='uroven-zhizni-'+todayIso()+'.json';
+  if(N&&N.exportBackup){N.exportBackup(name,json);return;}
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();}catch(e){toast('НЕ ПОЛУЧИЛОСЬ СОХРАНИТЬ КОПИЮ');}}
+let pendingRestore=null;
+function readRestore(file){const r=new FileReader();r.onload=()=>{let d=null;try{d=JSON.parse(r.result);}catch(e){}
+  if(!d||d.app!=='uroven-zhizni'||!d.profile){toast('ЭТО НЕ КОПИЯ «УРОВНЯ ЖИЗНИ»');return;}
+  pendingRestore=d;confirmModal('Текущие данные заменятся копией от '+esc(fmtDate((d.exported||todayIso()).slice(0,10)))+': герой '+esc(d.profile.name)+', записей в ленте: '+(d.events||[]).length+'.','ВОССТАНОВИТЬ','do-restore');};
+  r.onerror=()=>toast('НЕ ПОЛУЧИЛОСЬ ПРОЧИТАТЬ ФАЙЛ');r.readAsText(file);}
+function doRestore(){const d=pendingRestore;pendingRestore=null;if(!d)return;closeModal();
+  if(N){try{N.clearAll();}catch(e){}}Object.keys(PHOTO).forEach(k=>delete PHOTO[k]);
+  applyAll(d);mode='local';S.events.forEach(storePhoto);persistCore();persistEvents();syncReminders();
+  lastRankShown=null;rankCheck();location.hash='#hero';route();toast('ДАННЫЕ ВОССТАНОВЛЕНЫ',true);}
+window.__nativeToast=m=>toast(m);
+/* Android back button: close a window, leave the day filter, go to the hero tab; false lets the phone leave the app */
+window.__onBack=function(){
+  if(document.querySelector('.overlay')){closeModal();return true;}
+  if(view==='life'&&selDay){selDay=null;render();return true;}
+  if(view!=='hero'){location.hash='#hero';return true;}
+  return false;};
+
+/* ---------- actions ---------- */
+function addEvent(o){const ev=Object.assign({id:uid(),date:todayIso(),kind:'manual',text:'',xp:0,c:Date.now()},o);S.events.push(ev);saveEvent(ev);return ev;}
+function removeEvent(id){S.events=S.events.filter(e=>e.id!==id);dropEvent(id);}
+function rankCheck(){if(!S.profile)return;const h=heroInfo();const ri=rankIdx(xpOfLevel(h.age));
+  if(lastRankShown!==null&&ri>lastRankShown){const r=RANKS[ri];toast('РАНГ ГОДА '+r.r+'! '+r.name.toUpperCase()+(r.gear?' · НОВОЕ СНАРЯЖЕНИЕ: '+r.gear.toUpperCase():''),true);}
+  lastRankShown=ri;}
+function gain(evs,label){evs=[].concat(evs);const m=xpMap();const v=evs.reduce((s,e)=>s+(m[e.id]||0),0);
+  toast(v?'+'+v+' XP · '+label:label+' · ОПЫТ ЗА ЭТО УЖЕ ПОЛУЧЕН');rankCheck();}
+
+function toggleQuest(id){const q=S.quests.find(x=>x.id===id);if(!q)return;
+  if(!q.done){q.done=true;q.doneAt=todayIso();const ev=addEvent({kind:'quest',size:q.size||'m',text:'Задание выполнено: '+q.title});q.eventId=ev.id;gain(ev,'ЗАДАНИЕ');}
+  else{q.done=false;delete q.doneAt;if(q.eventId)removeEvent(q.eventId);delete q.eventId;lastRankShown=null;rankCheck();}
+  saveCore();render();}
+function toggleStep(id){const s=S.dream&&S.dream.steps.find(x=>x.id===id);if(!s)return;
+  if(!s.done){s.done=true;const ev=addEvent({kind:'step',text:'Шаг к мечте: '+s.text});s.eventId=ev.id;gain(ev,'ШАГ К МЕЧТЕ');}
+  else{s.done=false;if(s.eventId)removeEvent(s.eventId);delete s.eventId;lastRankShown=null;rankCheck();}
+  saveCore();render();}
+function recordStat(key,v){
+  const arr=S.stats[key],t=todayIso();
+  const others=arr.filter(x=>x.d!==t);const prevMax=others.length?Math.max(...others.map(x=>x.v)):null;
+  S.stats[key]=others.concat([{d:t,v}]).sort((a,b)=>a.d<b.d?-1:1);
+  if(key!=='cal'&&prevMax!==null&&v>prevMax&&!S.events.some(e=>e.kind==='record'&&e.date===t&&e.stat===key)){
+    const ev=addEvent({kind:'record',stat:key,text:'Новый рекорд: '+STAT_META[key].title.toLowerCase()+', '+v+' '+STAT_META[key].unit});gain(ev,'НОВЫЙ РЕКОРД');}
+  else toast('ЗАПИСАНО');
+  saveCore();render();}
+
+/* ---------- views ---------- */
+function render(){
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===view));
+  const b=document.getElementById('banner');
+  b.innerHTML=mode==='demo'?'<div class="banner"><div><b>Это пример героя.</b> Посмотри, как всё устроено, а потом создай своего: тогда данные начнут сохраняться.</div><button class="btn wide" data-act="setup">СОЗДАТЬ СВОЕГО ГЕРОЯ</button></div>':'';
+  const v=document.getElementById('view');
+  if(!S.profile){v.innerHTML='';return;}
+  v.innerHTML=view==='stats'?viewStats():view==='dream'?viewDream():view==='life'?viewLife():viewHero();
+  if(view==='hero'){const cv=document.getElementById('heroCanvas');const h=heroInfo();drawHero(cv,S.profile.look||{},h.age,rankIdx(xpOfLevel(h.age)));}
+}
+function dueText(due,done){if(done||!due)return'';const n=diffDays(today(),parse(due));
+  if(n<0)return'<span class="late">ПРОСРОЧЕНО НА '+(-n)+' '+plural(-n,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span>';
+  if(n===0)return'<span class="soon">СРОК СЕГОДНЯ</span>';
+  return'<span class="'+(n<=14?'soon':'')+'">ОСТАЛОСЬ '+n+' '+plural(n,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span>';}
+function questItem(q){return'<li class="q'+(q.done?' done':'')+'"><button class="check'+(q.done?' on':'')+'" data-act="quest" data-id="'+q.id+'" aria-label="'+(q.done?'Вернуть задание':'Отметить выполненным')+'">'+(q.done?'✓':'')+'</button>'+
+  '<div><div class="q-title">'+esc(q.title)+'</div><div class="q-meta">'+(q.done?'ВЫПОЛНЕНО '+esc(fmtDate(q.doneAt)).toUpperCase():(q.due?'СРОК: '+esc(fmtDate(q.due)).toUpperCase()+'<br>':'')+dueText(q.due,q.done))+'</div></div>'+
+  '<div class="row" style="gap:2px;flex-direction:column;align-items:flex-end"><span class="q-xp">+'+XP.quest[q.size||'m']+' XP</span><button class="x" data-act="del-quest" data-id="'+q.id+'" aria-label="Удалить задание">×</button></div></li>';}
+const ICON={
+  coin:'<rect x="2" y="0" width="4" height="1"/><rect x="1" y="1" width="6" height="1"/><rect x="0" y="2" width="8" height="4"/><rect x="1" y="6" width="6" height="1"/><rect x="2" y="7" width="4" height="1"/><rect x="3" y="2" width="2" height="4" style="fill:var(--panel)"/>',
+  up:'<rect x="0" y="5" width="2" height="3"/><rect x="3" y="3" width="2" height="5"/><rect x="6" y="0" width="2" height="8"/>',
+  house:'<rect x="3" y="0" width="2" height="1"/><rect x="2" y="1" width="4" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="1" y="4" width="6" height="4"/><rect x="3" y="5" width="2" height="3" style="fill:var(--panel)"/>',
+  car:'<rect x="3" y="0" width="5" height="1"/><rect x="2" y="1" width="7" height="2"/><rect x="3" y="1" width="2" height="2" style="fill:var(--panel)"/><rect x="6" y="1" width="2" height="2" style="fill:var(--panel)"/><rect x="0" y="3" width="12" height="3"/><rect x="11" y="3" width="1" height="1" style="fill:var(--gold)"/><rect x="2" y="5" width="3" height="3" style="fill:var(--ink)"/><rect x="8" y="5" width="3" height="3" style="fill:var(--ink)"/><rect x="3" y="6" width="1" height="1" style="fill:var(--bg)"/><rect x="9" y="6" width="1" height="1" style="fill:var(--bg)"/>'};
+const ICON_VB={car:'0 0 12 8'};
+function slot(icon,color,label,value,sub,tone){
+  const has=value!=null&&value!=='';
+  return'<button class="slot'+(has?'':' empty')+'" data-act="finance" aria-label="'+label+': '+(has?esc(value):'не заполнено')+'"><svg viewBox="'+(ICON_VB[icon]||'0 0 8 8')+'" aria-hidden="true" style="fill:'+(has?color:'var(--dim)')+'">'+ICON[icon]+'</svg><span class="sl">'+label+'</span><span class="sv">'+(has?esc(value):'+')+'</span>'+(has&&sub?'<span class="ss tone-'+(tone||'none')+'">'+sub+'</span>':'')+'</button>';}
+function slotsHtml(side){
+  const f=S.fin||{},w=wealth(S.fin)||{};
+  if(side==='left')return'<div class="side">'+
+    slot('coin','var(--gold)','ДОХОД',f.income?rubShort(f.income):'','В МЕСЯЦ',w.income&&w.income.tone)+
+    slot('up','var(--sage)','ДОСТАТОК',w.pm?num1(w.pm.x)+' ПМ':'',w.pm&&w.pm.short,w.pm&&w.pm.tone)+'</div>';
+  return'<div class="side">'+
+    slot('house','var(--coral)','ЖИЛЬЁ',f.area?num1(f.area)+' м²':'',w.area?num1(w.area.v)+' М² НА ЧЕЛ.':'',w.area&&w.area.tone)+
+    slot('car','var(--sky)','МАШИНА',f.car&&f.car.name?f.car.name:'',f.car&&f.car.year?String(f.car.year):'', 'none')+'</div>';}
+function viewHero(){
+  const h=heroInfo(),xp=xpOfLevel(h.age),ri=rankIdx(xp),r=RANKS[ri],next=RANKS[ri+1];
+  const xpProg=next?(xp-r.min)/(next.min-r.min)*100:100;
+  const gear=gearNames(S.profile.look,ri).join(' · ');
+  const active=S.quests.filter(q=>!q.done).sort((a,b)=>(a.due||'9999')<(b.due||'9999')?-1:1);
+  const done=S.quests.filter(q=>q.done).sort((a,b)=>a.doneAt<b.doneAt?1:-1);
+  const dr=S.dream;const dDone=dr?dr.steps.filter(s=>s.done).length:0,dTot=dr?dr.steps.length:0;
+  return'<section class="hero-head"><div class="hero-name">'+esc(S.profile.name).toUpperCase()+'</div><div class="hero-lvl">УРОВЕНЬ<b>'+h.age+'</b></div></section>'+
+  '<div class="stage">'+slotsHtml('left')+'<div class="center"><canvas id="heroCanvas" class="sprite" width="144" height="198" role="img" aria-label="Пиксельный персонаж, уровень '+h.age+'"></canvas><div class="pedestal"></div></div>'+slotsHtml('right')+'</div>'+
+  '<button class="gear" data-act="wardrobe">'+(ri>0?'СНАРЯЖЕНИЕ: <span>'+(gear?gear.toUpperCase():'СНЯТО')+'</span><br>ПЕРЕОДЕТЬ ►':'СНАРЯЖЕНИЕ ОТКРОЕТСЯ НА РАНГЕ C ►')+'</button>'+
+  '<div class="meters">'+
+    '<div class="mlabel">ДО УРОВНЯ '+(h.age+1)+'<span>'+h.left+' '+plural(h.left,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span></div>'+
+    '<div class="pbar" role="progressbar" aria-valuenow="'+Math.round(h.prog)+'" aria-valuemin="0" aria-valuemax="100" aria-label="Прогресс уровня"><i style="width:'+h.prog.toFixed(1)+'%"></i></div>'+
+    '<div class="mlabel" style="margin-top:8px">ОЦЕНКА ГОДА<span>'+xp+(next?' / '+next.min:'')+' XP</span></div>'+
+    '<div class="pbar xp" role="progressbar" aria-valuenow="'+xp+'" aria-label="Опыт года"><i style="width:'+Math.min(100,xpProg).toFixed(1)+'%"></i></div>'+
+    '<div class="rank-line"><div class="rank">'+r.r+'</div><p><b>'+r.name+'.</b> '+(next?'До ранга '+next.r+' ещё '+(next.min-xp)+' XP'+(next.gear?', он откроет '+next.gear+'.':'.'):'Это максимум. Легенда!')+'</p></div>'+
+  '</div>'+
+  '<section class="box"><h2>ЗАДАНИЯ <small>'+active.length+' АКТИВН.</small></h2>'+
+    (active.length?'<ul class="qlist">'+active.map(questItem).join('')+'</ul>':'<p class="muted">Нет активных заданий. Запиши желание и срок, когда хочешь его исполнить.</p>')+
+    '<button class="btn ghost wide" data-act="add-quest">+ НОВОЕ ЗАДАНИЕ</button>'+
+    (done.length?'<details><summary>ВЫПОЛНЕНО ('+done.length+')</summary><ul class="qlist" style="margin-top:10px">'+done.map(questItem).join('')+'</ul></details>':'')+
+  '</section>'+
+  '<a class="box mainq" href="#dream"><span class="eyebrow">ГЛАВНЫЙ КВЕСТ ►</span>'+
+    (dr?'<span class="title">'+esc(dr.title)+'</span>'+(dr.achieved?'<span class="muted">Мечта сбылась '+esc(fmtDate(dr.achieved))+'</span>':'<div class="pbar xp"><i style="width:'+(dTot?dDone/dTot*100:0)+'%"></i></div><span class="muted">Шагов пройдено: '+dDone+' из '+dTot+'</span>'):'<span class="muted">Мечта ещё не записана. Запиши её и разбей на шаги.</span>')+
+  '</a>'+
+  '<section class="box"><details><summary>КАК ПРОКАЧАТЬ ГОД</summary><p class="muted" style="margin-top:10px">Уровень растёт сам, в день рождения. А вот каким будет год, решаешь ты. Опыт за год:</p><ul class="xp-table">'+
+    '<li>Малое задание (на неделю)<b>+'+XP.quest.s+'</b></li><li>Среднее задание (на месяцы)<b>+'+XP.quest.m+'</b></li><li>Большое задание (событие года)<b>+'+XP.quest.l+'</b></li>'+
+    '<li>Шаг к мечте<b>+'+XP.step+'</b></li><li>Исполнить мечту<b>+'+XP.dream+'</b></li>'+
+    '<li>Рекорд в упражнении (раз в неделю на упражнение)<b>+'+XP.record+'</b></li><li>Рост дохода, жилья, новая машина (раз в месяц на каждое)<b>+'+XP.wealth+'</b></li>'+
+    '<li>Запись в ленте (первая за день)<b>+'+XP.manual+'</b></li><li>Если в ней есть фото<b>+'+(XP.manual+XP.photo)+'</b></li></ul>'+
+    '<p class="muted" style="margin-top:12px">Ранги года и что они открывают:</p><ul class="xp-table">'+RANKS.map(x=>'<li>'+x.r+' · '+x.name+(x.gear?' ('+x.gear+')':'')+'<b>'+x.min+'+</b></li>').join('')+'</ul>'+
+    '<p class="muted" style="margin-top:12px">В день рождения начинается новый уровень и новая оценка года. Снаряжение нужно заработать заново, а ранг прошлого года остаётся в ленте жизни.</p></details></section>';
+}
+function spark(arr){if(arr.length<2)return'';const w=300,h=46,vals=arr.slice(-12).map(x=>x.v);const mx=Math.max(...vals),mn=Math.min(...vals);
+  const sx=i=>Math.round(4+i*(w-12)/(vals.length-1)),sy=v=>Math.round(h-6-(mx===mn?0.5:(v-mn)/(mx-mn))*(h-14));
+  let d='M'+sx(0)+' '+sy(vals[0]);for(let i=1;i<vals.length;i++){d+=' H'+sx(i)+' V'+sy(vals[i]);}
+  return'<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-label="История результатов"><path d="M0 '+(h-2)+' H'+w+'" style="stroke:var(--panel2);fill:none" stroke-width="2"/><path d="'+d+'" style="stroke:var(--gold);fill:none" stroke-width="3" vector-effect="non-scaling-stroke"/><rect x="'+(sx(vals.length-1)-4)+'" y="'+(sy(vals[vals.length-1])-4)+'" width="8" height="8" style="fill:var(--coral)"/></svg>';}
+function statCard(key,h){
+  const m=STAT_META[key],arr=S.stats[key],last=arr[arr.length-1],best=arr.length?Math.max(...arr.map(x=>x.v)):null;
+  const n=norm(key,last?last.v:null,h.age,S.profile.sex);
+  const pct=v=>Math.max(0,Math.min(100,v/n.max*100)).toFixed(1);
+  const sexTxt=S.profile.sex==='f'?'жен.':'муж.';
+  return'<section class="box"><div class="stat-top"><h2>'+m.title+'</h2>'+(last?'<span class="chip tone-'+n.tone+'">'+n.rating+'</span>':'<span class="chip tone-none">НЕТ ЗАМЕРА</span>')+'</div>'+
+  '<div class="big">'+(last?last.v:'—')+'<small>'+m.unit+'</small></div>'+
+  (last?'<p class="muted">Замер '+esc(fmtDate(last.d))+(best!==null&&arr.length>1?' · рекорд '+best:'')+(n.pct!=null?' · лучше, чем у '+n.pct+'% сверстников':'')+'</p>':'')+
+  '<div class="gauge" aria-hidden="true"><span class="band" style="left:'+pct(n.band[0])+'%;width:'+(pct(n.band[1])-pct(n.band[0])).toFixed(1)+'%"></span>'+(last?'<span class="mark" style="left:'+pct(last.v)+'%"></span>':'')+'</div>'+
+  '<div class="gscale"><span>0</span><span>'+(key==='plank'?'ориентир':'норма')+' для '+h.age+' '+plural(h.age,'года','лет','лет')+', '+sexTxt+': <b>'+n.normText+'</b></span></div>'+
+  (key==='push'&&S.profile.sex==='f'?'<p class="src">Для женщин шкала ACSM дана для отжиманий с колен.</p>':'')+
+  '<form class="inrow" data-form="stat" data-key="'+key+'"><input class="field" id="in-'+key+'" type="number" inputmode="numeric" min="0" max="'+(key==='plank'?3600:500)+'" placeholder="'+(last?last.v:'Твой результат')+'" aria-label="Новый результат: '+m.title.toLowerCase()+'"><button class="btn" type="submit">ЗАПИСАТЬ</button></form>'+
+  '<p class="how">'+m.how+'</p>'+spark(arr)+'<p class="src">'+m.src+'</p></section>';}
+function calCard(){
+  const m=STAT_META.cal,arr=S.stats.cal,t=today();const days=[];for(let i=6;i>=0;i--){const d=iso(addDays(t,-i));const r=arr.find(x=>x.d===d);days.push({d,v:r?r.v:0});}
+  const mx=Math.max(100,...days.map(x=>x.v)),sum=days.reduce((s,x)=>s+x.v,0),cnt=days.filter(x=>x.v>0).length;
+  const todayV=days[6].v;const WD=['ВС','ПН','ВТ','СР','ЧТ','ПТ','СБ'];
+  const bars=days.map((x,i)=>{const bh=Math.round(x.v/mx*70);const xx=i*42+6;return'<rect x="'+xx+'" y="'+(80-bh)+'" width="30" height="'+Math.max(bh,2)+'" style="fill:'+(i===6?'var(--gold)':'var(--sage)')+'"/><text x="'+(xx+15)+'" y="96" text-anchor="middle" font-size="9" style="font-family:var(--px);fill:var(--dim)">'+WD[parse(x.d).getDay()]+'</text>';}).join('');
+  return'<section class="box"><div class="stat-top"><h2>'+m.title+'</h2><span class="chip tone-none">7 ДНЕЙ</span></div>'+
+  '<div class="big">'+(todayV||'—')+'<small>'+m.unit+' сегодня</small></div>'+
+  '<svg viewBox="0 0 294 100" style="width:100%;height:auto;display:block" role="img" aria-label="Калории за 7 дней">'+bars+'</svg>'+
+  '<p class="muted">За неделю: '+sum.toLocaleString('ru-RU')+' ккал'+(cnt?' · в среднем '+Math.round(sum/cnt)+' в активный день':'')+'</p>'+
+  '<form class="inrow" data-form="stat" data-key="cal"><input class="field" id="in-cal" type="number" inputmode="numeric" min="0" max="10000" placeholder="'+(todayV||'Ккал за сегодня')+'" aria-label="Активные калории за сегодня"><button class="btn" type="submit">ЗАПИСАТЬ</button></form>'+
+  '<p class="how">'+m.how+' Позже, в приложении для телефона, их можно будет подтягивать из часов автоматически.</p><p class="src">'+m.src+'</p></section>';}
+function viewStats(){const h=heroInfo();
+  return'<p class="muted" style="margin:4px 0 16px">Сравнение с людьми твоего возраста и пола. Синяя полоса показывает средний диапазон, жёлтая метка — твой последний результат.'+(h.age<18?' Нормы рассчитаны на взрослых, для тебя они ориентировочные.':'')+'</p>'+
+  statCard('squat',h)+statCard('push',h)+statCard('plank',h)+calCard()+'<div class="sec-title">ДОСТАТОК</div>'+wealthCards();}
+function gaugeHtml(v,max,band,scale){const pc=x=>Math.max(0,Math.min(100,x/max*100)).toFixed(1);
+  return'<div class="gauge" aria-hidden="true"><span class="band" style="left:'+pc(band[0])+'%;width:'+(pc(band[1])-pc(band[0])).toFixed(1)+'%"></span>'+(v!=null?'<span class="mark" style="left:'+pc(v)+'%"></span>':'')+'</div><div class="gscale"><span>0</span><span>'+scale+'</span></div>';}
+function wealthCards(){
+  const f=S.fin;
+  if(!f)return'<section class="box empty"><p style="margin:0">Впиши доход, жильё и машину. Они появятся слотами по бокам от героя, а здесь будет сравнение со средними цифрами по России.</p><button class="btn" data-act="finance">ЗАПОЛНИТЬ</button></section>';
+  const w=wealth(f),ppl=Math.max(1,f.people||1),h=(f.hist&&f.hist.income)||[];let html='';
+  if(w.income)html+='<section class="box"><div class="stat-top"><h2>ДОХОД</h2><span class="chip tone-'+w.income.tone+'">'+w.income.rating+'</span></div>'+
+    '<div class="big">'+rub(f.income).replace(' ₽','')+'<small>₽ в месяц на руки</small></div>'+
+    gaugeHtml(f.income,w.income.max,w.income.band,'медиана <b>'+rubShort(RU_MED)+'</b> · средняя <b>'+rubShort(RU_AVG)+'</b>')+
+    '<p class="how">Медиана значит, что половина работающих получает меньше, половина больше. Средняя выше, потому что её тянут вверх большие зарплаты.</p>'+spark(h)+
+    '<p class="src">Росстат: медианная зарплата '+rub(RU.medGross)+' (апрель 2025), средняя '+rub(RU.avgGross)+' (2025). Обе до налога, здесь пересчитаны на руки (минус 13%).</p></section>';
+  if(w.pm)html+='<section class="box"><div class="stat-top"><h2>УРОВЕНЬ ДОСТАТКА</h2><span class="chip tone-'+w.pm.tone+'">'+w.pm.rating+'</span></div>'+
+    '<div class="big">'+num1(w.pm.x)+'<small>прожиточных минимума на человека</small></div>'+
+    '<p class="muted">Доход семьи на одного человека: '+rub(w.pm.pc)+(ppl>1?' (в семье '+ppl+' '+plural(ppl,'человек','человека','человек')+')':'')+'</p>'+
+    gaugeHtml(w.pm.x,w.pm.max,w.pm.band,'средний уровень <b>2–3,5 ПМ</b>')+
+    '<p class="how">Ниже 1 ПМ: за чертой бедности. 1–2: скромно. 2–3,5: средний достаток. 3,5–6: выше среднего. От 6: высокий.</p>'+
+    '<p class="src">Прожиточный минимум на 2026 год: '+rub(RU.pm)+' на человека (426-ФЗ). Порог бедности официальный, остальные ступени шкалы условные, это ориентир приложения.</p></section>';
+  if(w.area)html+='<section class="box"><div class="stat-top"><h2>ЖИЛЬЁ</h2><span class="chip tone-'+w.area.tone+'">'+w.area.rating+'</span></div>'+
+    '<div class="big">'+num1(w.area.v)+'<small>м² на человека</small></div>'+
+    '<dl class="kv"><dt>Площадь всего</dt><dd>'+num1(f.area)+' м²</dd><dt>Живёт человек</dt><dd>'+ppl+'</dd>'+(f.home?'<dt>Жильё</dt><dd>'+HOME_LABEL[f.home]+'</dd>':'')+'</dl>'+
+    gaugeHtml(w.area.v,w.area.max,w.area.band,'соцнорма <b>'+RU.social+'</b> · средняя <b>'+num1(RU.area)+' м²</b>')+
+    '<p class="src">Росстат: в среднем по России '+num1(RU.area)+' м² на жителя (2023). Социальная норма жилья: 18 м² на человека.</p></section>';
+  if(f.car&&f.car.name){const age=f.car.year?today().getFullYear()-f.car.year:null;
+    html+='<section class="box"><div class="stat-top"><h2>МАШИНА</h2>'+(age!=null?'<span class="chip tone-none">'+(age<=0?'НОВАЯ':age+' '+plural(age,'ГОД','ГОДА','ЛЕТ'))+'</span>':'')+'</div><div class="big" style="font-size:18px;word-break:break-word">'+esc(f.car.name)+(f.car.year?'<small>'+f.car.year+' г.</small>':'')+'</div>'+
+    '<p class="how">Новая машина даст +'+XP.wealth+' XP и запись в ленте жизни.</p></section>';}
+  return html+'<button class="btn ghost wide" data-act="finance" style="margin-bottom:18px">ОБНОВИТЬ ДАННЫЕ</button><p class="src" style="margin-bottom:18px">Сравнение идёт со средними цифрами по России. В Москве и других крупных городах доходы и цены выше, поэтому там шкала будет строже.</p>';}
+function viewDream(){
+  const dr=S.dream;let html='';
+  if(!dr){html='<section class="box empty"><span class="eyebrow">ГЛАВНЫЙ КВЕСТ</span><p style="margin:0">Запиши свою мечту и разбей её на шаги. Каждый шаг даст +'+XP.step+' XP, а исполненная мечта +'+XP.dream+' XP.</p><button class="btn" data-act="edit-dream">ЗАПИСАТЬ МЕЧТУ</button></section>';}
+  else{const done=dr.steps.filter(s=>s.done).length,tot=dr.steps.length;
+    html='<section class="box"><span class="eyebrow">ГЛАВНЫЙ КВЕСТ</span><h1 class="dream-title">'+esc(dr.title)+'</h1>'+(dr.why?'<p class="why">'+esc(dr.why)+'</p>':'')+
+    (dr.achieved?'<div class="trophy"><div class="rank">★</div><p style="margin:0">Мечта сбылась '+esc(fmtDate(dr.achieved))+'. Эта запись навсегда в ленте жизни.</p></div><button class="btn wide" data-act="new-dream">ПОСТАВИТЬ НОВУЮ МЕЧТУ</button>':
+    '<div class="mlabel">ПЛАН<span>'+done+' / '+tot+' ШАГОВ</span></div><div class="pbar xp"><i style="width:'+(tot?done/tot*100:0)+'%"></i></div>'+
+    (tot?'<ol class="steps">'+dr.steps.map((s,i)=>'<li class="q'+(s.done?' done':'')+'"><button class="check'+(s.done?' on':'')+'" data-act="step" data-id="'+s.id+'" aria-label="'+(s.done?'Вернуть шаг':'Отметить шаг')+'">'+(s.done?'✓':'')+'</button><div><div class="q-title">'+(i+1)+'. '+esc(s.text)+'</div><div class="q-meta">'+(s.due&&!s.done?'К '+esc(fmtDate(s.due)).toUpperCase()+'<br>'+dueText(s.due,false):s.done?'ПРОЙДЕН':'')+'</div></div><div class="row" style="gap:2px;flex-direction:column;align-items:flex-end"><span class="q-xp">+'+XP.step+' XP</span><button class="x" data-act="del-step" data-id="'+s.id+'" aria-label="Удалить шаг">×</button></div></li>').join('')+'</ol>':'<p class="muted">Плана пока нет. Добавь первый шаг: самый маленький, который можно сделать на этой неделе.</p>')+
+    '<form data-form="step" style="display:flex;flex-direction:column;gap:8px"><input class="field" id="stepText" maxlength="120" placeholder="Следующий шаг, например «Купить ботинки»" aria-label="Новый шаг"><div class="inrow"><input class="field" id="stepDue" type="date" aria-label="Срок шага"><button class="btn" type="submit">+ ШАГ</button></div><p class="err" id="stepErr" hidden></p></form>'+
+    '<div class="row"><button class="btn ghost" data-act="edit-dream">ИЗМЕНИТЬ</button>'+(tot&&done===tot?'<button class="btn" data-act="dream-done">МЕЧТА СБЫЛАСЬ</button>':'')+'</div>')+'</section>';}
+  if(S.pastDreams.length)html+='<section class="box"><h2>СБЫВШИЕСЯ МЕЧТЫ</h2><ul class="past">'+S.pastDreams.map(p=>'<li>★ '+esc(p.title)+' · '+esc(fmtDate(p.achieved))+'</li>').join('')+'</ul></section>';
+  return html;}
+let XM={};
+function entryHtml(e){const auto=e.kind!=='manual';const fut=e.date>todayIso();const k=fut?'plan':e.kind;
+  return'<article class="entry'+(auto?' auto':'')+'"><div class="entry-top"><span class="tag k-'+k+'">'+KIND_LABEL[k]+'</span><span>'+esc(fmtDate(e.date)).toUpperCase()+'</span></div>'+
+  (photoOf(e)?'<img src="'+photoOf(e)+'" alt="Фото к записи" loading="lazy">':'')+'<p>'+esc(e.text)+'</p>'+
+  '<div class="entry-foot"><span>'+(fut?(e.kind==='manual'?'XP ПОСЛЕ СОБЫТИЯ':''):(XM[e.id]?'+'+XM[e.id]+' XP':(e.kind==='manual'||e.kind==='record'||e.kind==='wealth'?'<span style="color:var(--dim)">БЕЗ XP: ЛИМИТ</span>':'')))+'</span>'+(e.kind==='manual'?'<button class="x" data-act="del-entry" data-id="'+e.id+'" aria-label="Удалить запись">УДАЛИТЬ</button>':'')+'</div></article>';}
+function viewLife(){
+  XM=xpMap();const t=today();if(!calMonth)calMonth=new Date(t.getFullYear(),t.getMonth(),1);
+  const y=calMonth.getFullYear(),mo=calMonth.getMonth(),first=(new Date(y,mo,1).getDay()+6)%7,dim=new Date(y,mo+1,0).getDate();
+  const byDay={};S.events.forEach(e=>{(byDay[e.date]=byDay[e.date]||[]).push(e);});
+  const tIso=iso(t);let cells='';['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'].forEach(w=>cells+='<div class="wd">'+w+'</div>');
+  for(let i=0;i<first;i++)cells+='<div class="day out" aria-hidden="true"></div>';
+  for(let d=1;d<=dim;d++){const ds=iso(new Date(y,mo,d));const evs=byDay[ds]||[];
+    cells+='<button class="day'+(ds===tIso?' today':'')+(ds===selDay?' sel':'')+'" data-act="day" data-d="'+ds+'" aria-label="'+d+' '+MON_GEN[mo]+(evs.length?', записей: '+evs.length:'')+'">'+d+(evs.length?'<span class="dots">'+evs.slice(0,4).map(e=>'<i class="k-'+(ds>tIso?'plan':e.kind)+'"></i>').join('')+'</span>':'')+'</button>';}
+  let html='<section class="box"><div class="cal-head"><button class="navbtn" data-act="mon" data-n="-1" aria-label="Предыдущий месяц">◄</button><span class="px">'+MON_NOM[mo]+' '+y+'</span><button class="navbtn" data-act="mon" data-n="1" aria-label="Следующий месяц">►</button></div><div class="cal">'+cells+'</div>'+
+    '<button class="btn wide" data-act="add-entry">+ ЗАПИСЬ'+(selDay?' НА '+esc(fmtDate(selDay)).toUpperCase():'')+'</button></section>';
+  const sorted=S.events.slice().sort((a,b)=>a.date===b.date?(b.c||0)-(a.c||0):(a.date<b.date?1:-1));
+  if(selDay){const list=sorted.filter(e=>e.date===selDay);
+    html+='<div class="lvl-sep"><span>'+esc(fmtDate(selDay)).toUpperCase()+'</span></div><button class="btn ghost wide" data-act="all" style="margin-bottom:14px">ПОКАЗАТЬ ВСЮ ЛЕНТУ</button>'+
+      (list.length?list.map(entryHtml).join(''):'<div class="empty"><p class="muted">В этот день записей нет. Было что-то хорошее? Запиши, пока помнишь.</p></div>');
+    return html;}
+  const fut=sorted.filter(e=>e.date>tIso).reverse(),past=sorted.filter(e=>e.date<=tIso);
+  if(fut.length)html+='<div class="lvl-sep"><span>ВПЕРЕДИ</span></div>'+fut.map(entryHtml).join('');
+  if(!past.length){html+='<div class="empty"><p class="muted">Здесь будет твоя лента жизни: события, фото, выполненные задания и рекорды. Вместо чужой ленты, твоя собственная.</p><button class="btn" data-act="add-entry">ПЕРВАЯ ЗАПИСЬ</button></div>';return html;}
+  let cur=null;past.forEach(e=>{const l=levelOf(e.date);if(l!==cur){cur=l;const xp=xpOfLevel(l,XM);html+='<div class="lvl-sep"><span>УРОВЕНЬ '+l+'</span><span class="r">'+RANKS[rankIdx(xp)].r+' · '+xp+' XP</span></div>';}html+=entryHtml(e);});
+  return html;}
+
+/* ---------- modals ---------- */
+function openModal(html,onMount){const root=document.getElementById('modalRoot');root.innerHTML='<div class="overlay" data-act="close-bg"><div class="sheet" role="dialog" aria-modal="true">'+html+'</div></div>';
+  const f=root.querySelector('input,textarea,button');if(onMount)onMount(root);const a=root.querySelector('[autofocus]')||f;if(a)a.focus();}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';}
+function swatches(name,list,cur){return'<div class="sw">'+list.map((c,i)=>'<label><input type="radio" name="'+name+'" value="'+i+'"'+(i===cur?' checked':'')+' aria-label="Цвет '+(i+1)+'"><span style="background:'+c+'"></span></label>').join('')+'</div>';}
+function profileModal(isNew){
+  const p=isNew?{name:'',birth:'',sex:'m',look:{skin:0,hair:0,shirt:0,beard:false}}:S.profile;const L=p.look||{};const R=isNew?{daily:true,deadlines:true,time:'21:00'}:remSettings();
+  openModal('<h3>'+(isNew?'НОВЫЙ ГЕРОЙ':'ПРОФИЛЬ ГЕРОЯ')+'</h3><form data-form="profile" style="display:flex;flex-direction:column;gap:14px">'+
+    '<label class="lbl">ИМЯ<input class="field" id="pName" maxlength="16" value="'+esc(p.name)+'" placeholder="Никита" autofocus></label>'+
+    '<label class="lbl">ДАТА РОЖДЕНИЯ<input class="field" id="pBirth" type="date" value="'+esc(p.birth)+'" max="'+todayIso()+'"></label>'+
+    '<div class="lbl">ПОЛ (НУЖЕН ДЛЯ НОРМ)<div class="seg"><label><input type="radio" name="sex" value="m"'+(p.sex!=='f'?' checked':'')+'><span>МУЖСКОЙ</span></label><label><input type="radio" name="sex" value="f"'+(p.sex==='f'?' checked':'')+'><span>ЖЕНСКИЙ</span></label></div></div>'+
+    '<div class="lbl">ВНЕШНОСТЬ<div class="look"><canvas id="lookCv" width="96" height="132" aria-label="Предпросмотр персонажа"></canvas><div style="display:flex;flex-direction:column;gap:10px;min-width:0">'+
+      '<span>КОЖА</span>'+swatches('skin',SKIN,L.skin||0)+'<span>ВОЛОСЫ</span>'+swatches('hair',HAIR,L.hair||0)+'<span>ОДЕЖДА</span>'+swatches('shirt',SHIRT,L.shirt||0)+
+      '<label class="chk"><input type="checkbox" id="pBeard"'+(L.beard?' checked':'')+'>Борода</label></div></div></div>'+
+    (N?'<div class="lbl">НАПОМИНАНИЯ'+
+      '<label class="chk"><input type="checkbox" id="rDaily"'+(R.daily?' checked':'')+'>Вечером: «Как прошёл день? Запиши»</label>'+
+      '<label class="chk"><input type="checkbox" id="rDead"'+(R.deadlines?' checked':'')+'>Сроки заданий: за 3 дня и в день срока</label>'+
+      '<label class="lbl" style="margin-top:4px">ВО СКОЛЬКО<input class="field" id="rTime" type="time" value="'+esc(R.time)+'"></label></div>':'')+
+    '<p class="err" id="pErr" hidden></p><div class="row"><button class="btn" type="submit">'+(isNew?'НАЧАТЬ ПУТЬ':'СОХРАНИТЬ')+'</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div>'+
+    (!isNew&&mode!=='demo'?'<div class="lbl" style="margin-top:8px">РЕЗЕРВНАЯ КОПИЯ<p class="muted" style="font-family:var(--body)">Данные хранятся только на этом телефоне. Сохрани копию в файл (например, в Google Диск), чтобы перенести её на новый телефон.</p>'+
+      '<div class="row"><button class="btn ghost" type="button" data-act="backup">СОХРАНИТЬ КОПИЮ</button><button class="btn ghost" type="button" data-act="restore">ВОССТАНОВИТЬ</button></div></div>'+
+      '<button class="btn-text" type="button" data-act="reset" style="align-self:flex-start;color:var(--coral)">УДАЛИТЬ ВСЕ ДАННЫЕ</button>':
+     (isNew?'<button class="btn-text" type="button" data-act="restore" style="align-self:flex-start">ВОССТАНОВИТЬ ИЗ КОПИИ</button>':''))+'</form>',
+  root=>{const form=root.querySelector('form');const upd=()=>{const look=readLook(form);const b=form.querySelector('#pBirth').value;let age=25;if(b)age=ageAt(parse(b),today());drawHero(root.querySelector('#lookCv'),look,age,0);};form.addEventListener('input',upd);form.addEventListener('change',upd);upd();});}
+function readLook(f){const v=n=>Number((f.querySelector('input[name="'+n+'"]:checked')||{}).value||0);return{skin:v('skin'),hair:v('hair'),shirt:v('shirt'),beard:f.querySelector('#pBeard').checked};}
+function questModal(){openModal('<h3>НОВОЕ ЗАДАНИЕ</h3><form data-form="quest" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">ЧЕГО ХОЧЕШЬ<input class="field" id="qTitle" maxlength="120" placeholder="Прыгнуть с парашютом" autofocus></label>'+
+  '<label class="lbl">КОГДА ХОЧУ ЭТО СДЕЛАТЬ<input class="field" id="qDue" type="date" min="'+todayIso()+'"></label>'+
+  '<div class="lbl">РАЗМЕР ЗАДАНИЯ<div class="seg">'+Object.keys(QSIZE).map(k=>'<label><input type="radio" name="qsize" value="'+k+'"'+(k==='m'?' checked':'')+'><span>'+QSIZE[k].label+'<br>+'+XP.quest[k]+' XP</span></label>').join('')+'</div></div>'+
+  '<p class="muted">Малое: на неделю-другую. Среднее: на несколько месяцев. Большое: событие года.</p><p class="err" id="qErr" hidden></p>'+
+  '<div class="row"><button class="btn" type="submit">ДОБАВИТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>');}
+function dreamModal(){const d=S.dream||{title:'',why:''};openModal('<h3>МОЯ МЕЧТА</h3><form data-form="dream" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">МЕЧТА<input class="field" id="dTitle" maxlength="120" value="'+esc(d.title)+'" placeholder="Подняться на Эльбрус" autofocus></label>'+
+  '<label class="lbl">ЗАЧЕМ ОНА МНЕ<textarea class="field" id="dWhy" maxlength="400" placeholder="Что изменится, когда она сбудется?">'+esc(d.why)+'</textarea></label><p class="err" id="dErr" hidden></p>'+
+  '<div class="row"><button class="btn" type="submit">СОХРАНИТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>');}
+function wardrobeModal(){
+  const h=heroInfo(),ri=rankIdx(xpOfLevel(h.age)),g=gearOf(S.profile.look),r=RANKS[ri];
+  const rows=Object.keys(GEAR).map(k=>{const G=GEAR[k],open=ri>=G.rank;
+    return'<div class="lbl">'+G.label+(open?'':' · ОТКРОЕТСЯ НА РАНГЕ '+RANKS[G.rank].r)+'<div class="seg">'+Object.keys(G.opts).map(o=>'<label><input type="radio" name="g-'+k+'" value="'+o+'"'+(g[k]===o?' checked':'')+(open?'':' disabled')+'><span'+(open?'':' style="opacity:.45"')+'>'+G.opts[o].toUpperCase()+'</span></label>').join('')+'</div></div>';}).join('');
+  openModal('<h3>СНАРЯЖЕНИЕ</h3><p class="muted">Сейчас ранг года '+r.r+' («'+r.name+'»). Каждый ранг открывает новое место для вещи, а что надеть, выбираешь ты.</p>'+
+    '<form data-form="wardrobe" style="display:flex;flex-direction:column;gap:14px"><div class="look"><canvas id="wardCv" width="96" height="132" aria-label="Предпросмотр снаряжения"></canvas><p class="muted">В день рождения начинается новый год: снаряжение нужно будет заработать снова, а выбор вещей сохранится.</p></div>'+rows+
+    '<div class="row"><button class="btn" type="submit">НАДЕТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>',
+  root=>{const form=root.querySelector('form');const read=()=>{const o={};Object.keys(GEAR).forEach(k=>{o[k]=(form.querySelector('input[name="g-'+k+'"]:checked')||{}).value||g[k];});return o;};
+    const upd=()=>drawHero(root.querySelector('#wardCv'),Object.assign({},S.profile.look,{gear:read()}),h.age,ri);form.addEventListener('change',upd);upd();form._read=read;});}
+function financeModal(){const f=S.fin||{people:1,home:'own'};const c=f.car||{};const nv=v=>v!=null&&v!==''?v:'';
+  openModal('<h3>ДОСТАТОК</h3><form data-form="finance" novalidate style="display:flex;flex-direction:column;gap:14px">'+
+  '<label class="lbl">МОЙ ДОХОД В МЕСЯЦ НА РУКИ, ₽<input class="field" id="fIncome" type="number" inputmode="numeric" min="0" step="any" value="'+nv(f.income)+'" placeholder="85000" autofocus></label>'+
+  '<div class="two"><label class="lbl">ЖИВУТ ВМЕСТЕ, ВКЛЮЧАЯ МЕНЯ<input class="field" id="fPeople" type="number" inputmode="numeric" min="1" max="20" value="'+nv(f.people||1)+'"></label>'+
+  '<label class="lbl">ДОХОД СЕМЬИ, ₽<input class="field" id="fFamily" type="number" inputmode="numeric" min="0" step="any" value="'+nv(f.familyIncome)+'" placeholder="если не один"></label></div>'+
+  '<label class="lbl">ПЛОЩАДЬ ЖИЛЬЯ, М²<input class="field" id="fArea" type="number" inputmode="decimal" min="0" step="any" value="'+nv(f.area)+'" placeholder="54"></label>'+
+  '<div class="lbl">ЖИЛЬЁ<div class="seg" style="flex-wrap:wrap">'+Object.keys(HOME_LABEL).map(k=>'<label style="flex:1 1 40%"><input type="radio" name="home" value="'+k+'"'+((f.home||'own')===k?' checked':'')+'><span>'+HOME_LABEL[k].toUpperCase()+'</span></label>').join('')+'</div></div>'+
+  '<div class="two"><label class="lbl">МАШИНА<input class="field" id="fCarName" maxlength="40" value="'+esc(c.name||'')+'" placeholder="Kia Rio"></label>'+
+  '<label class="lbl">ГОД ВЫПУСКА<input class="field" id="fCarYear" type="number" inputmode="numeric" min="1950" max="'+(today().getFullYear()+1)+'" value="'+nv(c.year)+'" placeholder="2018"></label></div>'+
+  '<p class="muted">Нет машины? Оставь поле пустым. Доход семьи нужен, только если вы живёте вместе и делите бюджет.</p><p class="err" id="fErr" hidden></p>'+
+  '<div class="row"><button class="btn" type="submit">СОХРАНИТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>');}
+function saveFinance(form){
+  const n=id=>{const v=form.querySelector(id).value.trim();return v===''?null:Number(v);};
+  const income=n('#fIncome'),people=n('#fPeople')||1,family=n('#fFamily'),area=n('#fArea'),year=n('#fCarYear');
+  const carName=form.querySelector('#fCarName').value.trim();const home=(form.querySelector('input[name="home"]:checked')||{}).value||'own';
+  if([income,family,area].some(v=>v!=null&&(!isFinite(v)||v<0))){showErr('fErr','Суммы и площадь должны быть положительными числами.');return false;}
+  if(!isFinite(people)||people<1||people>20){showErr('fErr','Сколько человек живёт вместе: от 1 до 20.');return false;}
+  if(year!=null&&(year<1950||year>today().getFullYear()+1)){showErr('fErr','Проверь год выпуска машины.');return false;}
+  const prev=S.fin,t=todayIso();const hist=prev&&prev.hist?prev.hist:{income:[],area:[]};
+  const push=(arr,v)=>v?arr.filter(x=>x.d!==t).concat([{d:t,v}]).sort((a,b)=>a.d<b.d?-1:1):arr;
+  const evs=[];const sameDay=stat=>S.events.some(e=>e.kind==='wealth'&&e.date===t&&e.stat===stat);
+  if(prev){
+    const maxOf=(arr,fb)=>{const o=arr.filter(x=>x.d!==t).map(x=>x.v);if(fb)o.push(fb);return o.length?Math.max(...o):null;};
+    const mi=maxOf(hist.income||[],null),ma=maxOf(hist.area||[],null);
+    if(income&&mi&&income>mi&&!sameDay('income')){evs.push(addEvent({kind:'wealth',stat:'income',text:'Доход вырос: теперь '+rub(income)+' в месяц'}));}
+    if(area&&ma&&area>ma&&!sameDay('area')){evs.push(addEvent({kind:'wealth',stat:'area',text:'Жильё стало просторнее: теперь '+num1(area)+' м²'}));}
+    const pc=prev.car||{};if(carName&&(pc.name!==carName||(pc.year||null)!==year)&&!sameDay('car')){evs.push(addEvent({kind:'wealth',stat:'car',text:'Новая машина: '+carName+(year?', '+year+' г.':'')}));}
+  }
+  S.fin={income,familyIncome:family,people,area,home,car:carName?{name:carName,year}:null,hist:{income:push(hist.income||[],income),area:push(hist.area||[],area)}};
+  saveCore();closeModal();render();
+  if(evs.length)gain(evs,'РОСТ ДОСТАТКА');else toast('ДОСТАТОК ОБНОВЛЁН');
+  return true;}
+let pendingPhoto=null;
+function entryModal(){pendingPhoto=null;const d=selDay||todayIso();
+  openModal('<h3>ЗАПИСЬ В ЛЕНТУ</h3><form data-form="entry" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">ДАТА<input class="field" id="eDate" type="date" value="'+d+'"></label>'+
+  '<label class="lbl">ЧТО ПРОИЗОШЛО<textarea class="field" id="eText" maxlength="1000" placeholder="Сегодня впервые пробежал 10 км" autofocus></textarea></label>'+
+  '<label class="lbl">ФОТО (НЕОБЯЗАТЕЛЬНО)<input class="field" id="ePhoto" type="file" accept="image/*"></label><div class="photo-prev" id="ePrev"></div>'+
+  '<p class="muted">Событие в будущем попадёт в раздел «Впереди», а опыт за него засчитается, когда день наступит.</p><p class="err" id="eErr" hidden></p>'+
+  '<div class="row"><button class="btn" type="submit">СОХРАНИТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>',
+  root=>{root.querySelector('#ePhoto').addEventListener('change',async ev=>{const f=ev.target.files&&ev.target.files[0];const prev=root.querySelector('#ePrev');if(!f){pendingPhoto=null;prev.innerHTML='';return;}
+    prev.innerHTML='<p class="muted">Сжимаю фото…</p>';try{pendingPhoto=await shrink(f);prev.innerHTML='<img src="'+pendingPhoto+'" alt="Предпросмотр фото">';}catch(e){pendingPhoto=null;prev.innerHTML='<p class="err">Не получилось открыть это фото. Попробуй JPG или PNG.</p>';}});});}
+function confirmModal(text,btn,act){openModal('<h3>ТОЧНО?</h3><p style="margin:0">'+text+'</p><div class="row"><button class="btn danger" data-act="'+act+'">'+btn+'</button><button class="btn ghost" data-act="close">ОТМЕНА</button></div>');}
+function shrink(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=()=>{const img=new Image();img.onerror=rej;img.onload=()=>{
+  let max=900,q=0.75,out='';for(let k=0;k<6;k++){const sc=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);out=c.toDataURL('image/jpeg',q);if(out.length<170000)break;max=Math.round(max*0.8);q=Math.max(0.5,q-0.07);}
+  res(out);};img.src=r.result;};r.readAsDataURL(file);});}
+function showErr(id,msg){const e=document.getElementById(id);if(!e)return;e.textContent=msg;e.hidden=false;}
+
+/* ---------- toast ---------- */
+let toastT=null;function toast(msg,big){const r=document.getElementById('toastRoot');r.innerHTML='<div class="toast'+(big?' levelup':'')+'" role="status">'+esc(msg)+'</div>';clearTimeout(toastT);toastT=setTimeout(()=>{r.innerHTML='';},big?3600:2200);}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act,id=el.dataset.id;
+  if(a==='close-bg'){if(e.target===el)closeModal();return;}
+  if(a==='close'){closeModal();return;}
+  if(a==='setup'){profileModal(true);return;}
+  if(a==='profile'){profileModal(mode==='demo');return;}
+  if(a==='quest'){toggleQuest(id);return;}
+  if(a==='del-quest'){const q=S.quests.find(x=>x.id===id);if(q){S.quests=S.quests.filter(x=>x.id!==id);saveCore();render();toast('ЗАДАНИЕ УДАЛЕНО');}return;}
+  if(a==='add-quest'){questModal();return;}
+  if(a==='finance'){financeModal();return;}
+  if(a==='wardrobe'){wardrobeModal();return;}
+  if(a==='step'){toggleStep(id);return;}
+  if(a==='del-step'){if(S.dream){S.dream.steps=S.dream.steps.filter(s=>s.id!==id);saveCore();render();}return;}
+  if(a==='edit-dream'){dreamModal();return;}
+  if(a==='dream-done'){S.dream.achieved=todayIso();gain(addEvent({kind:'dream',text:'Мечта сбылась: '+S.dream.title}),'МЕЧТА СБЫЛАСЬ');saveCore();render();return;}
+  if(a==='new-dream'){S.pastDreams.push({title:S.dream.title,achieved:S.dream.achieved});S.dream=null;saveCore();render();dreamModal();return;}
+  if(a==='day'){selDay=selDay===el.dataset.d?null:el.dataset.d;render();return;}
+  if(a==='all'){selDay=null;render();return;}
+  if(a==='mon'){calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+Number(el.dataset.n),1);render();return;}
+  if(a==='add-entry'){entryModal();return;}
+  if(a==='del-entry'){confirmModal('Запись исчезнет из ленты вместе с опытом за неё.','УДАЛИТЬ','do-del-entry');document.querySelector('[data-act="do-del-entry"]').dataset.id=id;return;}
+  if(a==='do-del-entry'){removeEvent(id);closeModal();lastRankShown=null;rankCheck();render();toast('ЗАПИСЬ УДАЛЕНА');return;}
+  if(a==='reset'){confirmModal('Герой, задания, мечта и вся лента жизни будут удалены без возможности вернуть.','УДАЛИТЬ ВСЁ','do-reset');return;}
+  if(a==='do-reset'){doReset();return;}
+  if(a==='backup'){doBackup();return;}
+  if(a==='restore'){const i=document.getElementById('restoreFile');if(i){i.value='';i.click();}return;}
+  if(a==='do-restore'){doRestore();return;}
+});
+function doReset(){closeModal();
+  if(N){try{N.clearAll();}catch(e){}}else{try{localStorage.removeItem(LS_KEY);}catch(e){}}
+  Object.keys(PHOTO).forEach(k=>delete PHOTO[k]);
+  applyAll(demoState());mode='demo';syncReminders();lastRankShown=null;location.hash='#hero';render();toast('ДАННЫЕ УДАЛЕНЫ');}
+document.addEventListener('submit',e=>{
+  const f=e.target;const k=f.dataset.form;if(!k)return;e.preventDefault();
+  if(k==='profile'){const name=f.querySelector('#pName').value.trim(),birth=f.querySelector('#pBirth').value;
+    if(!name){showErr('pErr','Впиши имя героя.');return;}
+    if(!birth||birth>todayIso()||parse(birth).getFullYear()<1900){showErr('pErr','Укажи настоящую дату рождения: от неё считается уровень.');return;}
+    const sex=(f.querySelector('input[name="sex"]:checked')||{}).value||'m';const look=readLook(f);
+    const rem=f.querySelector('#rDaily')?{daily:f.querySelector('#rDaily').checked,deadlines:f.querySelector('#rDead').checked,time:f.querySelector('#rTime').value||'21:00'}:null;
+    const askPerm=()=>{if(N&&rem&&(rem.daily||rem.deadlines)&&N.requestNotifications){try{N.requestNotifications();}catch(e){}}};
+    if(mode==='demo'){applyAll(emptyState());S.profile={name,birth,sex,look};if(rem)S.settings={remind:rem};mode='local';
+      addEvent({kind:'start',text:'Герой '+name+' начал свой путь на уровне '+ageAt(parse(birth),today())+'.',xp:0});saveCore();closeModal();lastRankShown=0;location.hash='#hero';view='hero';render();toast('ПУТЬ НАЧАЛСЯ!',true);askPerm();}
+    else{look.gear=(S.profile.look||{}).gear;S.profile={name,birth,sex,look};if(rem)S.settings=Object.assign({},S.settings,{remind:rem});saveCore();askPerm();closeModal();render();toast('ПРОФИЛЬ СОХРАНЁН');}
+    return;}
+  if(k==='finance'){saveFinance(f);return;}
+  if(k==='wardrobe'){S.profile.look=Object.assign({},S.profile.look,{gear:f._read()});saveCore();closeModal();render();toast('СНАРЯЖЕНИЕ НАДЕТО');return;}
+  if(k==='quest'){const t=f.querySelector('#qTitle').value.trim(),d=f.querySelector('#qDue').value;
+    if(!t){showErr('qErr','Напиши, чего хочешь.');return;}if(!d){showErr('qErr','Выбери срок: без даты желание так и останется желанием.');return;}
+    const size=(f.querySelector('input[name="qsize"]:checked')||{}).value||'m';S.quests.push({id:uid(),title:t,due:d,size,done:false});saveCore();closeModal();render();toast('ЗАДАНИЕ ПРИНЯТО');return;}
+  if(k==='dream'){const t=f.querySelector('#dTitle').value.trim(),w=f.querySelector('#dWhy').value.trim();
+    if(!t){showErr('dErr','Назови мечту хотя бы парой слов.');return;}
+    if(!S.dream)S.dream={title:t,why:w,steps:[]};else{S.dream.title=t;S.dream.why=w;}saveCore();closeModal();location.hash='#dream';render();return;}
+  if(k==='step'){const t=f.querySelector('#stepText').value.trim(),d=f.querySelector('#stepDue').value;
+    if(!t){showErr('stepErr','Опиши шаг.');return;}S.dream.steps.push({id:uid(),text:t,due:d||null,done:false});saveCore();render();setTimeout(()=>{const i=document.getElementById('stepText');if(i)i.focus();},0);return;}
+  if(k==='entry'){const d=f.querySelector('#eDate').value,t=f.querySelector('#eText').value.trim();
+    if(!d){showErr('eErr','Выбери дату.');return;}if(!t&&!pendingPhoto){showErr('eErr','Напиши пару слов или добавь фото.');return;}
+    const ev=addEvent({date:d,kind:'manual',text:t,photo:pendingPhoto||undefined});if(!ev.photo)delete ev.photo;
+    pendingPhoto=null;closeModal();render();if(d<=todayIso())gain(ev,'ЗАПИСЬ В ЛЕНТЕ');else toast('ДОБАВЛЕНО В «ВПЕРЕДИ»');return;}
+  if(k==='stat'){const key=f.dataset.key;const inp=f.querySelector('input');const v=Number(inp.value);
+    if(inp.value===''||!isFinite(v)||v<0){inp.focus();toast('ВПИШИ ЧИСЛО');return;}recordStat(key,Math.round(v));return;}
+});
+document.getElementById('restoreFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)readRestore(f);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.querySelector('.overlay'))closeModal();});
+function route(){const h=(location.hash||'').replace('#','');view=['hero','stats','dream','life'].includes(h)?h:'hero';render();window.scrollTo(0,0);}
+window.addEventListener('hashchange',route);
+
+/* ---------- boot ---------- */
+const local=storeLoad();
+if(local&&local.profile){applyAll(local);mode='local';}else{applyAll(demoState());mode='demo';}
+try{lastRankShown=rankIdx(xpOfLevel(heroInfo().age));}catch(e){lastRankShown=0;}
+route();
+syncReminders();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Every GitHub build gets a higher version number, so a new APK installs over the old one.
+def buildNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
+
+android {
+    namespace 'ru.urovenzhizni.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'ru.urovenzhizni.app'
+        minSdk 26
+        targetSdk 35
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    // One fixed key for all builds: Android only installs an update signed with the same key.
+    signingConfigs {
+        shared {
+            storeFile rootProject.file('keystore/uroven.jks')
+            storePassword 'urovenzhizni'
+            keyAlias 'uroven'
+            keyPassword 'urovenzhizni'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.shared
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
