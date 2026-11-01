@@ -2,6 +2,7 @@ package ru.urovenzhizni.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -83,8 +84,10 @@ public class MainActivity extends Activity {
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
+                Intent pick = params.createIntent();
+                if (params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                 try {
-                    startActivityForResult(params.createIntent(), REQ_FILE);
+                    startActivityForResult(pick, REQ_FILE);
                 } catch (ActivityNotFoundException e) {
                     fileCallback = null;
                     return false;
@@ -102,7 +105,18 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQ_FILE) {
-            if (fileCallback != null) fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            // Several photos come back as ClipData, one photo as getData().
+            Uri[] picked = null;
+            if (resultCode == RESULT_OK && data != null) {
+                ClipData clip = data.getClipData();
+                if (clip != null && clip.getItemCount() > 0) {
+                    picked = new Uri[clip.getItemCount()];
+                    for (int i = 0; i < picked.length; i++) picked[i] = clip.getItemAt(i).getUri();
+                } else if (data.getData() != null) {
+                    picked = new Uri[]{data.getData()};
+                }
+            }
+            if (fileCallback != null) fileCallback.onReceiveValue(picked);
             fileCallback = null;
         } else if (requestCode == REQ_EXPORT) {
             String json = pendingExport;

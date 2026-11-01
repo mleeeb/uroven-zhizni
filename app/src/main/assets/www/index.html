@@ -178,7 +178,35 @@ textarea.field{resize:vertical;min-height:90px}
 .day .dots i.k-wealth{background:var(--sky)}
 .tag.k-manual{color:var(--sage)} .tag.k-quest,.tag.k-step,.tag.k-dream{color:var(--gold)} .tag.k-record{color:var(--coral)} .tag.k-plan,.tag.k-start{color:var(--dim)}
 .entry p{margin:0;white-space:pre-wrap;word-break:break-word}
-.entry img{display:block;width:100%;max-height:360px;object-fit:cover;border:3px solid var(--ink);image-rendering:auto}
+.entry .ph-main{display:block;width:100%;aspect-ratio:4/3;max-height:360px;object-fit:cover;border:3px solid var(--ink);background:var(--bg2);cursor:zoom-in}
+.thumbs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.entry .ph-th{display:block;width:100%;aspect-ratio:1;max-width:100%;object-fit:cover;border:2px solid var(--ink);background:var(--bg2);cursor:zoom-in}
+.viewer{position:fixed;inset:0;z-index:70;background:rgba(8,9,24,.97);display:flex;flex-direction:column;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+.vw-top,.vw-bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;font-family:var(--px);font-size:8px;color:var(--dim)}
+.vw-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.vw-stage img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;will-change:transform;-webkit-user-drag:none}
+.pgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding-top:6px}
+.pthumb{position:relative;aspect-ratio:1;border:2px solid var(--ink);background:var(--bg2);display:grid;place-items:center}
+.pthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pdel{position:absolute;top:-9px;right:-9px;width:24px;height:24px;border:2px solid var(--ink);background:var(--coral);color:#1B1E3A;font-size:11px;line-height:1;padding:0}
+.padd{aspect-ratio:1;border:3px dashed var(--panel2);background:transparent;color:var(--gold);font-family:var(--px);font-size:16px;padding:0}
+.pload{font-family:var(--px);color:var(--dim)}
+.optgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.optgrid label{position:relative;min-width:0}
+.optgrid input{position:absolute;opacity:0;width:1px;height:1px}
+.optgrid span{display:flex;flex-direction:column;gap:5px;justify-content:center;min-height:54px;padding:8px;border:3px solid var(--panel2);background:var(--bg2);font-family:var(--px);font-size:8px;line-height:1.5;color:var(--ink);cursor:pointer;word-break:break-word}
+.optgrid span small{font-size:6px;color:var(--dim)}
+.optgrid input:checked+span{border-color:var(--gold);color:var(--gold)}
+.optgrid input:focus-visible+span{outline:3px solid var(--gold);outline-offset:2px}
+.presetbtn{flex:1;min-width:0;padding:10px 4px;border:3px solid var(--panel2);background:var(--panel2);font-family:var(--px);font-size:7px;line-height:1.4;color:var(--ink)}
+.presetbtn:active{transform:translate(1px,1px)}
+.btn-mini{margin-top:8px;font-family:var(--px);font-size:7px;line-height:1.4;padding:7px 8px;background:var(--panel2);color:var(--gold);border:2px solid var(--gold)}
+.q-xp.zero{color:var(--dim)}
+.q.failed .q-title{color:var(--coral)}
+.pxi{width:.85em;height:.85em;margin-right:3px;vertical-align:-.05em;fill:currentColor;shape-rendering:crispEdges}
+.qcount{font-size:9px;text-decoration:none;color:var(--dim);white-space:nowrap}
+.tag.k-fail{color:var(--coral)}
+.day .dots i.k-fail{background:var(--coral)}
 .entry-foot{display:flex;justify-content:space-between;align-items:center;font-family:var(--px);font-size:8px;color:var(--gold)}
 .empty{border:3px dashed var(--panel2);padding:18px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
 
@@ -235,6 +263,7 @@ textarea.field{resize:vertical;min-height:90px}
   </div>
 </nav>
 <div id="modalRoot"></div>
+<div id="viewerRoot"></div>
 <input type="file" id="restoreFile" hidden aria-hidden="true">
 <div id="toastRoot"></div>
 
@@ -278,7 +307,7 @@ const GEAR={
   top:{rank:4,label:'НАГРАДА',opts:{crown:'Корона',wreath:'Венок',none:'Ничего'}}};
 const gearOf=look=>Object.assign({head:'band',back:'cape',hand:'sword',top:'crown'},(look&&look.gear)||{});
 function gearNames(look,rIdx){const g=gearOf(look);return Object.keys(GEAR).filter(k=>rIdx>=GEAR[k].rank&&g[k]!=='none').map(k=>GEAR[k].opts[g[k]].toLowerCase());}
-const KIND_LABEL={manual:'ЗАПИСЬ',quest:'ЗАДАНИЕ',step:'ШАГ МЕЧТЫ',dream:'МЕЧТА',record:'РЕКОРД',wealth:'ДОСТАТОК',plan:'В ПЛАНАХ',start:'СТАРТ'};
+const KIND_LABEL={fail:'ПРОВАЛ',manual:'ЗАПИСЬ',quest:'ЗАДАНИЕ',step:'ШАГ МЕЧТЫ',dream:'МЕЧТА',record:'РЕКОРД',wealth:'ДОСТАТОК',plan:'В ПЛАНАХ',start:'СТАРТ'};
 
 /* ---------- wealth (Russia) ---------- */
 const RU={medGross:73871,avgGross:100360,pm:18939,area:28.8,social:18,net:0.87};
@@ -340,48 +369,136 @@ function norm(key,v,age,sex){
   return null;}
 
 /* ---------- sprite ---------- */
-const SPRITE=[
-"................","................","....KKKKKKKK....","...KHHHHHHHHK...","...KHHHHHHHHK...","...KHSSSSSSHK...",
-"...KSSESSESSK...","...KSSSSSSSSK...","...KSSSMMSSSK...","....KSSSSSSK....",".....KKSSKK.....","...KKTTTTTTKK...",
-"..KTTTTTTTTTTK..","..KTKTTTTTTKTK..","..KSKTTTTTTKSK..","..KKKTTTTTTKKK..","....KPPPPPPK....","....KPPKKPPK....",
-"....KPPKKPPK....","....KBBKKBBK....","...KBBBKKBBBK...","...KKKK..KKKK..."];
+/* ---------- hero sprite (16 x 22 pixels) ---------- */
+/* The mask names body regions; outfit, hair and gear are painted over it. */
+const HEAD=[
+"................","................","....oooooooo....","...ohhhhhhhho...","...ohhhhhhhho...","...ohssssssho...",
+"...ossEssEsso...","...osssssssso...","...osssMMssso...","....osssssso....",".....oonnoo....."];
+const BODY={
+ m:["...ooccccccoo...","..oaccccccccao..","..ofoccccccofo..","..owoccccccowo..","..ooobbbbbbooo..",
+    "....oppppppo....","....olloollo....","....okkookko....","....oeeooeeo....","...ogggoogggo...","...oooo..oooo..."],
+ f:["....ooccccoo....","...oaccccccao...","...ofoccccofo...","...owoccccowo...","...ooobbbbooo...",
+    "....oppppppo....","....olloollo....","....okkookko....","....oeeooeeo....","...ogggoogggo...","...oooo..oooo..."]};
 const SKIN=['#F2CC8F','#E0AC7E','#B97A56','#7A4E33'];
 const HAIR=['#2B1D14','#6B4226','#C98A3D','#E8D27A','#A33B2E'];
 const SHIRT=['#E07A5F','#3D5A80','#81B29A','#9B6BC9','#D9D4BE'];
-function drawHero(cv,look,age,rIdx){
-  const g=SPRITE.map(r=>r.split(''));
+const STYLES={sport:'СПОРТ',biz:'ДЕЛОВОЙ',casual:'ПОВСЕДНЕВНЫЙ'};
+const HAIRSTYLES={m:{short:'Короткая',buzz:'Ёжик',bangs:'Чёлка'},f:{long:'Длинные',pony:'Хвост',bob:'Каре'}};
+/* each item: style, name (or {m,f}), how it paints */
+const TOPS={
+  tee:{style:'sport',name:'Футболка'},
+  hoodie:{style:'sport',name:'Толстовка',long:true},
+  shirt:{style:'biz',name:{m:'Рубашка с галстуком',f:'Блузка'},long:true},
+  jacket:{style:'biz',name:'Пиджак',long:true},
+  print:{style:'casual',name:'Футболка с принтом'},
+  sweater:{style:'casual',name:'Свитер',long:true},
+  dress:{style:'casual',name:'Платье',only:'f'}};
+const BOTTOMS={
+  shorts:{style:'sport',name:'Спортивные шорты',c:'1',short:true},
+  track:{style:'sport',name:'Спортивные штаны',c:'2'},
+  trousers:{style:'biz',name:'Брюки',c:'3'},
+  chinos:{style:'biz',name:{m:'Чиносы',f:'Юбка-карандаш'},c:'4'},
+  jeans:{style:'casual',name:'Джинсы',c:'6'},
+  cshorts:{style:'casual',name:{m:'Шорты',f:'Юбка'},c:'7',short:true}};
+const SHOES={
+  sneakers:{style:'sport',name:'Кроссовки',e:'w',g:'w'},
+  runners:{style:'sport',name:'Беговые',e:'g',g:'w'},
+  oxfords:{style:'biz',name:'Туфли',e:'x',g:'x'},
+  boots:{style:'biz',name:'Ботинки',e:'n',g:'n'},
+  keds:{style:'casual',name:'Кеды',e:'r',g:'w'},
+  hightops:{style:'casual',name:'Высокие кеды',e:'r',g:'w',high:true}};
+const PRESETS={sport:{top:'tee',bottom:'track',shoes:'sneakers'},biz:{top:'shirt',bottom:'trousers',shoes:'oxfords'},casual:{top:'print',bottom:'jeans',shoes:'keds'}};
+const itemName=(it,sex)=>typeof it.name==='string'?it.name:it.name[sex==='f'?'f':'m'];
+function normLook(look,sex){
+  const L=Object.assign({skin:0,hair:0,beard:false},look||{});sex=sex==='f'?'f':'m';
+  if(!HAIRSTYLES[sex][L.style])L.style=sex==='f'?'long':'short';
+  const o=Object.assign({top:'tee',bottom:'jeans',shoes:'boots',color:L.shirt||0},L.outfit||{});
+  if(!TOPS[o.top]||(TOPS[o.top].only&&TOPS[o.top].only!==sex))o.top=TOPS[o.top]&&TOPS[o.top].only?'print':'tee';
+  if(!BOTTOMS[o.bottom])o.bottom='jeans';
+  if(!SHOES[o.shoes])o.shoes='boots';
+  if(!(o.color>=0&&o.color<SHIRT.length))o.color=0;
+  L.outfit=o;if(sex==='f')L.beard=false;delete L.shirt;return L;}
+function shade(hex,k){const n=parseInt(hex.slice(1),16);const f=c=>Math.max(0,Math.min(255,Math.round(c*k)));
+  return'#'+[n>>16&255,n>>8&255,n&255].map(f).map(v=>v.toString(16).padStart(2,'0')).join('');}
+function heroGrid(look,sex,rIdx){
+  sex=sex==='f'?'f':'m';const L=normLook(look,sex),o=L.outfit;
+  const mask=HEAD.concat(BODY[sex]).map(r=>r.split(''));
+  const top=TOPS[o.top],bot=BOTTOMS[o.bottom],sh=SHOES[o.shoes];
+  const g=mask.map(row=>row.map(r=>{
+    switch(r){
+      case 'o':return'K';case 'h':return'H';case 's':case 'n':case 'w':return'S';case 'E':return'E';
+      case 'M':return sex==='f'?'F':'M';
+      case 'c':case 'b':case 'a':return top===TOPS.shirt&&sex==='m'?'w':top===TOPS.jacket?'j':'T';
+      case 'f':return top.long?(top===TOPS.shirt&&sex==='m'?'w':top===TOPS.jacket?'j':'T'):'S';
+      case 'p':case 'l':return bot.c;
+      case 'k':return bot.short?'S':bot.c;
+      case 'e':return sh.e;case 'g':return sh.g;
+      default:return'.';}}));
   const set=(x,y,c,onlyEmpty)=>{if(y<0||y>=g.length||x<0||x>15)return;if(onlyEmpty&&g[y][x]!=='.')return;g[y][x]=c;};
-  if(look.beard){[4,5,10,11].forEach(x=>set(x,8,'H'));for(let x=5;x<=10;x++)set(x,9,'H');}
-  const G=gearOf(look);
-  if(rIdx>=1&&G.head==='band'){for(let x=4;x<=11;x++)set(x,4,'R');}
-  if(rIdx>=1&&G.head==='cap'){for(let x=4;x<=11;x++)set(x,2,'Q');for(let x=3;x<=12;x++)set(x,3,'Q');for(let x=8;x<=14;x++)set(x,4,'Q');}
+  const row=(y,x0,x1,c)=>{for(let x=x0;x<=x1;x++)set(x,y,c);};
+  const tx0=sex==='f'?6:5,tx1=sex==='f'?9:10;   // torso columns at chest height
+  /* top details */
+  if(o.top==='hoodie'){row(11,tx0,tx1,'t');set(7,12,'w');set(8,12,'w');row(14,7,8,'t');}
+  if(o.top==='shirt'){if(sex==='m'){set(7,11,'T');set(8,11,'T');for(let y=12;y<=14;y++){set(7,y,'T');set(8,y,'T');}}else row(11,tx0,tx1,'w');}
+  if(o.top==='jacket'){row(11,6,9,'w');if(sex==='m'){set(7,11,'T');set(8,11,'T');set(7,12,'T');set(8,12,'T');set(7,13,'T');set(8,13,'T');}else{set(7,12,'w');set(8,12,'w');}}
+  if(o.top==='print'){row(12,7,8,'a');row(13,7,8,'a');}
+  if(o.top==='sweater'){row(11,tx0,tx1,'t');row(13,tx0,tx1,'t');}
+  if(o.top==='dress'){row(15,6,9,'T');row(16,5,10,'T');row(17,4,11,'T');set(3,17,'K');set(12,17,'K');
+    [5,6,9,10].forEach(x=>set(x,18,sh.high?sh.e:'S'));}
+  /* bottom details (a dress hides the bottom) */
+  if(o.top!=='dress'){
+    if(o.bottom==='track'){set(5,17,'w');set(10,17,'w');set(5,18,'w');set(10,18,'w');}
+    if(o.bottom==='chinos'&&sex==='f'){g[16].forEach((c,x)=>{if(c==='4')g[16][x]='3';});row(17,5,10,'3');[5,6,9,10].forEach(x=>set(x,18,'S'));}
+    if(o.bottom==='cshorts'&&sex==='f'){g[16].forEach((c,x)=>{if(c==='7')g[16][x]='8';});row(17,4,11,'8');set(3,17,'K');set(12,17,'K');[5,6,9,10].forEach(x=>set(x,18,'S'));}
+  }
+  if(sh.high)[5,6,9,10].forEach(x=>set(x,18,sh.e));
+  /* hair */
+  const st=L.style;
+  if(st==='buzz')row(4,5,10,'S');
+  if(st==='bangs')row(5,5,8,'H');
+  if(st==='long'){for(let y=5;y<=12;y++){set(3,y,'H');set(12,y,'H');set(2,y,'K');set(13,y,'K');}set(3,13,'K');set(12,13,'K');}
+  if(st==='bob'){row(5,5,10,'H');for(let y=5;y<=9;y++){set(3,y,'H');set(12,y,'H');set(2,y,'K');set(13,y,'K');}set(3,10,'K');set(12,10,'K');}
+  if(st==='pony'){set(12,4,'H');set(12,5,'H');set(13,3,'K');for(let y=4;y<=9;y++){set(13,y,'H');set(14,y,'K');}set(13,10,'K');}
+  if(sex==='f'){set(5,6,'E');set(10,6,'E');}
+  if(L.beard&&sex==='m'){[4,5,10,11].forEach(x=>set(x,8,'H'));for(let x=5;x<=10;x++)set(x,9,'H');}
+  /* gear earned this year */
+  const G=gearOf(L);
+  if(rIdx>=1&&G.head==='band'){row(4,4,11,'R');}
+  if(rIdx>=1&&G.head==='cap'){row(2,4,11,'Q');row(3,3,12,'Q');row(4,8,14,'Q');}
   if(rIdx>=2&&G.back==='cape'){for(let y=11;y<=18;y++)[1,2,13,14].forEach(x=>set(x,y,'C',true));}
   if(rIdx>=2&&G.back==='pack'){for(let y=11;y<=17;y++)[0,1,2].forEach(x=>set(x,y,'G',true));}
   if(rIdx>=3&&G.hand==='sword'){for(let y=6;y<=12;y++)set(14,y,'W');set(13,13,'Y');set(14,13,'Y');set(15,13,'Y');set(14,14,'N');}
   if(rIdx>=3&&G.hand==='dumbbell'){for(let y=12;y<=16;y++)set(14,y,'W');[10,11,17,18].forEach(y=>{for(let x=13;x<=15;x++)set(x,y,'D');});}
-  if(rIdx>=4&&G.top==='crown'){[4,7,8,11].forEach(x=>set(x,0,'Y'));for(let x=4;x<=11;x++)set(x,1,'Y');}
+  if(rIdx>=4&&G.top==='crown'){[4,7,8,11].forEach(x=>set(x,0,'Y'));row(1,4,11,'Y');}
   if(rIdx>=4&&G.top==='wreath'){[3,5,7,8,10,12].forEach(x=>set(x,1,'L'));[2,13].forEach(x=>{set(x,2,'L');set(x,3,'L');});}
-  const pal={Q:'#6C9BD8',G:'#8A6A3B',D:'#9AA0C0',L:'#81B29A',K:'#0C0E22',S:SKIN[look.skin||0],H:age>=55?'#C9C9D6':HAIR[look.hair||0],E:'#0C0E22',M:'#8E3B46',T:SHIRT[look.shirt||0],
-    P:'#2C3E66',B:'#5A3E2B',R:'#E07A5F',C:'#8E3B46',W:'#DDE1EE',Y:'#F2CC8F',N:'#6B4226'};
+  return{g,L};}
+function drawHero(cv,look,age,rIdx,sex){
+  const r=heroGrid(look,sex,rIdx),g=r.g,L=r.L,topC=SHIRT[L.outfit.color];
+  const pal={K:'#0C0E22',S:SKIN[L.skin||0],H:age>=55?'#C9C9D6':HAIR[L.hair||0],E:'#0C0E22',M:'#8E3B46',F:'#C2546A',
+    T:topC,t:shade(topC,0.72),w:'#E8E6DA',j:'#33395A',a:'#F2CC8F',
+    '1':'#22263F','2':'#4A4F6E','3':'#2A2D45','4':'#C2A878','6':'#3D5A80','7':'#B8A27A','8':'#B5485A',
+    x:'#1E1A22',r:'#C4473F',g:'#4FA88A',n:'#6B4A30',
+    Q:'#6C9BD8',G:'#8A6A3B',D:'#9AA0C0',L:'#81B29A',R:'#E07A5F',C:'#8E3B46',W:'#DDE1EE',Y:'#F2CC8F',N:'#6B4226'};
   const s=cv.width/16,ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);ctx.imageSmoothingEnabled=false;
-  g.forEach((row,y)=>row.forEach((c,x)=>{if(c==='.')return;ctx.fillStyle=pal[c];ctx.fillRect(x*s,y*s,s,s);}));}
+  g.forEach((row,y)=>row.forEach((c,x)=>{if(c==='.')return;ctx.fillStyle=pal[c]||'#FF00FF';ctx.fillRect(x*s,y*s,s,s);}));}
 
 /* ---------- state ---------- */
 let S=emptyState();let mode='demo';let view='hero';let calMonth=null;let selDay=null;let lastRankShown=null;
 function emptyState(){return{profile:null,stats:{squat:[],push:[],plank:[],cal:[]},quests:[],dream:null,pastDreams:[],fin:null,settings:null,rev:0,events:[]};}
 function demoState(){
   const t=today(),d=n=>iso(addDays(t,n));
-  return{profile:{name:'Герой',birth:iso(new Date(t.getFullYear()-28,t.getMonth()+4,12)),sex:'m',look:{skin:0,hair:1,shirt:0,beard:false}},
+  return{profile:{name:'Герой',birth:iso(new Date(t.getFullYear()-28,t.getMonth()+4,12)),sex:'m',look:{skin:0,hair:1,style:'short',beard:false,outfit:{top:'print',bottom:'jeans',shoes:'keds',color:0}}},
     stats:{squat:[{d:d(-200),v:36},{d:d(-120),v:40},{d:d(-20),v:44}],push:[{d:d(-150),v:18},{d:d(-40),v:22}],plank:[{d:d(-90),v:55},{d:d(-15),v:75}],
       cal:[-6,-5,-4,-3,-2,-1,0].map((n,i)=>({d:d(n),v:[420,380,510,260,610,450,390][i]}))},
     quests:[{id:'q1',title:'Прыгнуть с парашютом',due:d(214),size:'l',done:false},{id:'q2',title:'Пробежать полумарафон',due:d(45),size:'m',done:false},{id:'q3',title:'Съездить на Байкал зимой',due:d(98),size:'l',done:false},
-      {id:'q4',title:'Выучить 300 слов на испанском',due:d(-50),done:true,doneAt:d(-60),eventId:'e3'},{id:'q5',title:'Прочитать 6 книг',due:d(-20),size:'m',done:true,doneAt:d(-25),eventId:'e9'}],
+      {id:'q4',title:'Выучить 300 слов на испанском',due:d(-50),done:true,doneAt:d(-60),eventId:'e3'},{id:'q5',title:'Прочитать 6 книг',due:d(-20),size:'m',done:true,doneAt:d(-25),eventId:'e9'},{id:'q6',title:'Неделя без сладкого',due:d(0),size:'s',failed:true,failedAt:d(-44),failEventId:'e14',done:false}],
     dream:{title:'Подняться на Эльбрус',why:'Хочу увидеть мир с самой высокой точки Европы и доказать себе, что могу.',steps:[
       {id:'s1',text:'Сходить в первый поход с ночёвкой',done:true,eventId:'e5'},{id:'s2',text:'Пробегать 5 км без остановки',done:true,eventId:'e6'},
       {id:'s3',text:'Купить ботинки и снаряжение',due:d(60),done:false},{id:'s4',text:'Найти группу и гида',due:d(120),done:false},{id:'s5',text:'Восхождение',due:d(250),done:false}]},
     pastDreams:[],
     fin:{income:85000,familyIncome:140000,people:2,area:54,home:'mortgage',car:{name:'Kia Rio',year:2018},hist:{income:[{d:d(-300),v:70000},{d:d(-70),v:85000}],area:[{d:d(-300),v:54}]}},
     events:[
+      {id:'e14',date:d(-44),kind:'fail',size:'s',qid:'q6',text:'Задание провалено: Неделя без сладкого (срок прошёл)',c:12},
       {id:'e13',date:d(-70),kind:'wealth',text:'Доход вырос: теперь 85 000 ₽ в месяц',xp:XP.wealth,c:11},
       {id:'e1',date:d(-20),kind:'record',text:'Новый рекорд: приседания, 44 раза за минуту',xp:XP.record,c:1},
       {id:'e2',date:d(-35),kind:'manual',text:'Первый раз пробежал 10 км. Медленно, но без остановок!',xp:XP.manual,c:2},
@@ -406,41 +523,134 @@ function heroInfo(){
   return{age,start,end,left:diffDays(t,end),prog:Math.min(100,Math.max(0,passed/total*100))};}
 const levelOf=s=>ageAt(parse(S.profile.birth),parse(s));
 /* XP is computed from the rules every time (not stored), so a rebalance applies to old entries too. */
+const qBase=size=>XP.quest[size||'m']||XP.quest.m;
+const hasPhotos=e=>!!((e.photos&&e.photos.length)||e.photo||e.hasPhoto);
 function xpMap(){
   const out={},dayUsed={},lastStat={};
   S.events.slice().sort((a,b)=>a.date===b.date?(a.c||0)-(b.c||0):(a.date<b.date?-1:1)).forEach(e=>{
     let v=0;
-    if(e.kind==='quest')v=XP.quest[e.size||'m']||XP.quest.m;
+    if(e.kind==='quest')v=Math.round(qBase(e.size)*(e.mult==null?1:e.mult));
+    else if(e.kind==='fail')v=-qBase(e.size);
     else if(e.kind==='step')v=XP.step;
     else if(e.kind==='dream')v=XP.dream;
-    else if(e.kind==='manual'){if(!dayUsed[e.date]){dayUsed[e.date]=1;v=XP.manual+(e.photo||e.hasPhoto?XP.photo:0);}}
+    else if(e.kind==='manual'){if(!dayUsed[e.date]){dayUsed[e.date]=1;v=XP.manual+(hasPhotos(e)?XP.photo:0);}}
     else if(e.kind==='record'||e.kind==='wealth'){const k=e.kind+':'+(e.stat||'');const lp=lastStat[k];
       if(!lp||diffDays(parse(lp),parse(e.date))>=CAP[e.kind]){v=XP[e.kind];lastStat[k]=e.date;}}
     out[e.id]=v;});
   return out;}
-function xpOfLevel(l,m){m=m||xpMap();const t=todayIso();return S.events.filter(e=>e.date<=t&&levelOf(e.date)===l).reduce((s,e)=>s+(m[e.id]||0),0);}
+/* Year XP never drops below zero: a failure early in the year is not carried as a debt. */
+function xpOfLevel(l,m){m=m||xpMap();const t=todayIso();let total=0;
+  S.events.filter(e=>e.date<=t&&levelOf(e.date)===l).sort((a,b)=>a.date===b.date?(a.c||0)-(b.c||0):(a.date<b.date?-1:1))
+    .forEach(e=>{total=Math.max(0,total+(m[e.id]||0));});
+  return total;}
+function questCounts(level){const t=todayIso();const evs=S.events.filter(e=>e.date<=t&&(level==null||levelOf(e.date)===level));
+  return{done:evs.filter(e=>e.kind==='quest'&&(e.mult==null||e.mult>0)).length,failed:evs.filter(e=>e.kind==='fail').length};}
 
-/* ---------- persistence (on this phone) ---------- */
-/* window.Native is the Android bridge (MainActivity). Without it (desktop browser) the app falls back to localStorage. */
+/* ---------- persistence ---------- */
+/* Where the data lives:
+   on an Android phone  -> window.Native (MainActivity) keeps files in the app's private storage;
+   on the page in Claude -> the artifact's own cloud store (window.claude), with localStorage as a quick cache;
+   in a plain browser   -> localStorage only.
+   Photos are stored one by one, apart from the entries, and entries keep only their ids (e.photos). */
 const N=window.Native||null;
-const LS_KEY='lifeRpg.v1';
-const PHOTO={};
-const stripEv=e=>{const o=Object.assign({},e);if(o.photo){o.hasPhoto=true;delete o.photo;}return o;};
-function photoOf(e){if(e.photo)return e.photo;if(!e.hasPhoto||!N)return null;
-  if(PHOTO[e.id]===undefined){let p=null;try{p=N.loadPhoto(e.id);}catch(x){}PHOTO[e.id]=p||null;}return PHOTO[e.id];}
+const LS_KEY='lifeRpg.v1',LS_PH='lifeRpg.ph.';
+const PHOTO={},PH_WAIT={};
+const P={db:null,uid:null,prof:null,evCol:null,phCol:null,writing:false,again:false,timer:null,dirty:false,answered:false,resetting:false,pendAdd:new Map(),pendDel:new Set()};
+const plain=o=>JSON.parse(JSON.stringify(o));
+const saveFail=()=>toast('НЕ ПОЛУЧИЛОСЬ СОХРАНИТЬ. ПРОВЕРЬ СВОБОДНОЕ МЕСТО');
 function storeLoad(){
   try{
     if(N){const c=N.loadCore();if(!c)return null;const o=JSON.parse(c);const ev=N.loadEvents();o.events=ev?JSON.parse(ev):[];return o;}
     const r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null;
   }catch(e){return null;}}
-function lsAll(){localStorage.setItem(LS_KEY,JSON.stringify(Object.assign(core(),{events:S.events})));}
-const saveFail=()=>toast('НЕ ПОЛУЧИЛОСЬ СОХРАНИТЬ. ПРОВЕРЬ СВОБОДНОЕ МЕСТО');
-function persistCore(){try{if(N){if(!N.saveCore(JSON.stringify(core())))saveFail();}else lsAll();}catch(e){saveFail();}}
-function persistEvents(){try{if(N){if(!N.saveEvents(JSON.stringify(S.events.map(stripEv))))saveFail();}else lsAll();}catch(e){saveFail();}}
-function storePhoto(ev){if(!N||!ev.photo)return;try{if(N.savePhoto(ev.id,ev.photo)){PHOTO[ev.id]=ev.photo;ev.hasPhoto=true;delete ev.photo;}else saveFail();}catch(e){saveFail();}}
-function saveCore(){if(mode==='demo')return;S.rev=Date.now();persistCore();syncReminders();}
-function saveEvent(ev){if(mode==='demo')return;storePhoto(ev);persistEvents();syncReminders();}
-function dropEvent(id){if(mode==='demo')return;if(N){try{N.deletePhoto(id);}catch(e){}}delete PHOTO[id];persistEvents();syncReminders();}
+function localAll(){try{localStorage.setItem(LS_KEY,JSON.stringify(Object.assign(core(),{events:S.events})));return true;}catch(e){return false;}}
+function persistCore(){try{if(N){if(!N.saveCore(JSON.stringify(core())))saveFail();}else if(!localAll()&&!P.db)saveFail();}catch(e){saveFail();}}
+function persistEvents(){try{if(N){if(!N.saveEvents(JSON.stringify(S.events)))saveFail();}else if(!localAll()&&!P.db)saveFail();}catch(e){saveFail();}}
+function clearLocal(){
+  if(N){try{N.clearAll();}catch(e){}return;}
+  try{Object.keys(localStorage).filter(k=>k===LS_KEY||k.indexOf(LS_PH)===0).forEach(k=>localStorage.removeItem(k));}catch(e){}}
+
+/* photos */
+function putPhoto(pid,data){PHOTO[pid]=data;if(mode==='demo')return true;
+  try{
+    if(N){if(N.savePhoto(pid,data))return true;saveFail();return false;}
+    if(P.db){P.phCol.doc(pid).set({d:data}).catch(dbError);return true;}
+    localStorage.setItem(LS_PH+pid,data);return true;
+  }catch(e){saveFail();return false;}}
+function dropPhoto(pid){delete PHOTO[pid];if(mode==='demo')return;
+  try{if(N){N.deletePhoto(pid);return;}localStorage.removeItem(LS_PH+pid);if(P.db)P.phCol.doc(pid).delete().catch(()=>{});}catch(e){}}
+/* The photo if it is already known. Otherwise loading starts, and every <img data-pid> showing it is filled in when it arrives. */
+function getPhoto(pid){
+  if(pid in PHOTO)return PHOTO[pid];
+  try{
+    if(N){PHOTO[pid]=N.loadPhoto(pid)||null;return PHOTO[pid];}
+    const l=localStorage.getItem(LS_PH+pid);if(l){PHOTO[pid]=l;return l;}
+  }catch(e){}
+  if(P.db&&!PH_WAIT[pid])PH_WAIT[pid]=P.phCol.doc(pid).get().then(sn=>{PHOTO[pid]=sn.exists?((sn.data()||{}).d||null):null;delete PH_WAIT[pid];paintPhoto(pid);},()=>{delete PH_WAIT[pid];});
+  return null;}
+function photoAsync(pid){const v=getPhoto(pid);if(v||!PH_WAIT[pid])return Promise.resolve(v||null);return PH_WAIT[pid].then(()=>PHOTO[pid]||null);}
+function paintPhoto(pid){const d=PHOTO[pid];if(!d)return;document.querySelectorAll('img[data-pid]').forEach(i=>{if(i.dataset.pid===pid)i.src=d;});}
+/* Older saves kept one photo inside the entry (e.photo) or a file named after it (e.hasPhoto). */
+function migratePhotos(){const changed=[];
+  S.events.forEach(e=>{
+    if(e.photo){PHOTO[e.id]=e.photo;if(mode!=='demo')putPhoto(e.id,e.photo);e.photos=[e.id];delete e.photo;changed.push(e);}
+    else if(e.hasPhoto){e.photos=[e.id];delete e.hasPhoto;changed.push(e);}});
+  return changed;}
+
+function saveCore(){if(mode==='demo')return;S.rev=Math.max(Date.now(),(S.rev||0)+1);persistCore();syncReminders();
+  if(P.db){P.dirty=true;clearTimeout(P.timer);P.timer=setTimeout(writeCore,500);}}
+async function writeCore(){
+  if(!P.db)return;if(P.writing){P.again=true;return;}
+  P.writing=true;
+  try{await P.prof.set(plain(core()));}catch(e){dbError(e);}
+  P.writing=false;
+  if(P.again){P.again=false;writeCore();}else P.dirty=false;}
+function saveEvent(ev){if(mode==='demo')return;persistEvents();syncReminders();
+  if(P.db){P.pendAdd.set(ev.id,ev);P.evCol.doc(ev.id).set(plain(ev)).then(()=>P.pendAdd.delete(ev.id),e=>{P.pendAdd.delete(ev.id);dbError(e);});}}
+function dropEvent(id){if(mode==='demo')return;persistEvents();syncReminders();
+  if(P.db){P.pendAdd.delete(id);P.pendDel.add(id);P.evCol.doc(id).delete().then(()=>P.pendDel.delete(id),e=>{P.pendDel.delete(id);dbError(e);});}}
+function dbError(e){const c=e&&e.code;
+  if(c==='quota_exceeded')toast('ХРАНИЛИЩЕ ЗАПОЛНЕНО. УДАЛИ СТАРЫЕ ЗАПИСИ С ФОТО');
+  else if(c==='invalid_argument')toast('ЗАПИСЬ НЕ СОХРАНИЛАСЬ: ВОЗМОЖНО, ФОТО СЛИШКОМ БОЛЬШОЕ');
+  else if(c==='revoked'||c==='not_granted'){P.db=null;toast('ОБЛАКО НЕДОСТУПНО. СОХРАНЯЮ НА ЭТОМ УСТРОЙСТВЕ');}
+  else toast('НЕ ПОЛУЧИЛОСЬ СОХРАНИТЬ. ДАННЫЕ ОСТАЛИСЬ НА УСТРОЙСТВЕ');}
+
+/* Cloud (only on the page inside Claude). The profile is applied only when it is newer than ours (rev),
+   so an older or echoed copy never wipes a change that was just made. */
+async function initCloud(){
+  if(N)return;const C=window.claude;if(!C||typeof C.use!=='function')return;
+  let db=null,user=null;
+  try{[db,user]=await Promise.all([C.use('db'),C.use('user')]);}catch(e){return;}
+  if(!db||!user)return;
+  let id=null;try{id=await user.id();}catch(e){}
+  if(!id)return;
+  P.db=db;P.uid=id;P.prof=db.doc('data/users/'+id+'/profile');P.evCol=P.prof.collection('events');P.phCol=P.prof.collection('photos');
+  const timer=setTimeout(()=>{if(!P.answered)toast('ОБЛАКО ПОКА НЕ ОТВЕЧАЕТ. ДАННЫЕ СОХРАНЯЮТСЯ НА ЭТОМ УСТРОЙСТВЕ');},10000);
+  const answered=()=>{if(!P.answered){P.answered=true;clearTimeout(timer);}};
+  const fail=e=>{clearTimeout(timer);dbError(e);};
+  let evDocs=null,profSeen=false;
+  const takeEvents=()=>{S.events=mergeEvents(evDocs);migratePhotos().forEach(saveEvent);};
+  P.prof.onSnapshot(sn=>{
+    answered();if(P.resetting)return;
+    const busy=P.dirty||P.writing;
+    if(sn.exists){
+      const d=sn.data()||{},rr=d.rev||0,lr=S.rev||0;
+      if(mode==='demo'||(rr>lr&&!busy)){applyCore(d);if(evDocs)takeEvents();else if(mode==='demo')S.events=[];mode='db';processQuests();lastRankShown=null;rankCheck(true);localAll();render();}
+      else if(rr<lr&&!busy){mode='db';writeCore();}
+      else mode='db';
+    }else if(mode!=='demo'&&S.profile){
+      mode='db';writeCore();
+      S.events.forEach(ev=>{saveEvent(ev);(ev.photos||[]).forEach(pid=>{const d=getPhoto(pid);if(d)P.phCol.doc(pid).set({d}).catch(dbError);});});}
+    profSeen=true;
+  },fail);
+  P.evCol.onSnapshot(sn=>{
+    answered();evDocs=sn.docs.map(x=>x.data());
+    if(!profSeen||P.resetting||mode==='demo')return;
+    takeEvents();localAll();render();
+  },fail);
+}
+function mergeEvents(docs){const ids=new Set(docs.map(e=>e.id));
+  return docs.filter(e=>!P.pendDel.has(e.id)).concat([...P.pendAdd.values()].filter(e=>!ids.has(e.id)));}
 
 /* reminders: the phone shows them; the page only tells it what to say */
 function remSettings(){return Object.assign({daily:true,time:'21:00',deadlines:true},(S.settings&&S.settings.remind)||{});}
@@ -450,45 +660,88 @@ function syncReminders(){
   const r=remSettings(),t=todayIso();
   const last=S.events.filter(e=>e.kind==='manual'&&e.date<=t).map(e=>e.date).sort().pop()||'';
   try{N.setReminders(JSON.stringify({daily:!!r.daily,deadlines:!!r.deadlines,time:r.time,name:S.profile.name,lastEntry:last,
-    quests:S.quests.filter(q=>!q.done&&q.due).map(q=>({title:q.title,due:q.due}))}));}catch(e){}}
+    quests:S.quests.filter(q=>!q.done&&!q.failed&&q.due).map(q=>({title:q.title,due:q.due}))}));}catch(e){}}
 
 /* backup to a file and restore from it */
-function doBackup(){
-  const data=Object.assign({app:'uroven-zhizni',version:1,exported:new Date().toISOString()},core(),
-    {events:S.events.map(e=>{const o=stripEv(e);delete o.hasPhoto;const p=photoOf(e);if(p)o.photo=p;return o;})});
+async function doBackup(){
+  toast('ГОТОВЛЮ КОПИЮ…');
+  const events=await Promise.all(S.events.map(async e=>{const o=plain(e);
+    if(e.photos&&e.photos.length){o.photoData=(await Promise.all(e.photos.map(photoAsync))).filter(Boolean);}return o;}));
+  const data=Object.assign({app:'uroven-zhizni',version:2,exported:new Date().toISOString()},plain(core()),{events});
   const json=JSON.stringify(data),name='uroven-zhizni-'+todayIso()+'.json';
   if(N&&N.exportBackup){N.exportBackup(name,json);return;}
+  const C=window.claude;
+  if(C&&typeof C.use==='function'){let dl=null;try{dl=await C.use('downloads');}catch(e){}
+    if(dl){try{await dl.save({filename:name,data:json});toast('КОПИЯ СОХРАНЕНА');}catch(e){toast(e&&e.code==='declined'?'КОПИЯ НЕ СОХРАНЕНА':'НЕ ПОЛУЧИЛОСЬ СОХРАНИТЬ КОПИЮ');}return;}}
   try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();}catch(e){toast('НЕ ПОЛУЧИЛОСЬ СОХРАНИТЬ КОПИЮ');}}
 let pendingRestore=null;
 function readRestore(file){const r=new FileReader();r.onload=()=>{let d=null;try{d=JSON.parse(r.result);}catch(e){}
   if(!d||d.app!=='uroven-zhizni'||!d.profile){toast('ЭТО НЕ КОПИЯ «УРОВНЯ ЖИЗНИ»');return;}
   pendingRestore=d;confirmModal('Текущие данные заменятся копией от '+esc(fmtDate((d.exported||todayIso()).slice(0,10)))+': герой '+esc(d.profile.name)+', записей в ленте: '+(d.events||[]).length+'.','ВОССТАНОВИТЬ','do-restore');};
   r.onerror=()=>toast('НЕ ПОЛУЧИЛОСЬ ПРОЧИТАТЬ ФАЙЛ');r.readAsText(file);}
-function doRestore(){const d=pendingRestore;pendingRestore=null;if(!d)return;closeModal();
-  if(N){try{N.clearAll();}catch(e){}}Object.keys(PHOTO).forEach(k=>delete PHOTO[k]);
-  applyAll(d);mode='local';S.events.forEach(storePhoto);persistCore();persistEvents();syncReminders();
-  lastRankShown=null;rankCheck();location.hash='#hero';route();toast('ДАННЫЕ ВОССТАНОВЛЕНЫ',true);}
+async function doRestore(){const d=pendingRestore;pendingRestore=null;if(!d)return;closeModal();
+  const old=S.events.slice();P.resetting=true;
+  if(P.db){try{for(const ev of old){for(const pid of ev.photos||[])await P.phCol.doc(pid).delete();await P.evCol.doc(ev.id).delete();}}catch(e){}}
+  clearLocal();Object.keys(PHOTO).forEach(k=>delete PHOTO[k]);
+  const photos=[];
+  (d.events||[]).forEach(e=>{
+    const list=e.photoData||(e.photo?[e.photo]:[]);delete e.photoData;delete e.photo;delete e.hasPhoto;
+    if(list.length){e.photos=list.map((_,i)=>(e.photos&&e.photos[i])||(e.id+'-'+i));list.forEach((data,i)=>photos.push([e.photos[i],data]));}else delete e.photos;});
+  applyAll(d);mode=P.db?'db':'local';P.resetting=false;
+  photos.forEach(([pid,data])=>putPhoto(pid,data));
+  persistCore();persistEvents();syncReminders();
+  if(P.db){writeCore();S.events.forEach(saveEvent);}
+  processQuests();lastRankShown=null;rankCheck(true);location.hash='#hero';route();toast('ДАННЫЕ ВОССТАНОВЛЕНЫ',true);}
 window.__nativeToast=m=>toast(m);
 /* Android back button: close a window, leave the day filter, go to the hero tab; false lets the phone leave the app */
 window.__onBack=function(){
+  if(VW){closeViewer();return true;}
   if(document.querySelector('.overlay')){closeModal();return true;}
   if(view==='life'&&selDay){selDay=null;render();return true;}
   if(view!=='hero'){location.hash='#hero';return true;}
   return false;};
 
 /* ---------- actions ---------- */
-function addEvent(o){const ev=Object.assign({id:uid(),date:todayIso(),kind:'manual',text:'',xp:0,c:Date.now()},o);S.events.push(ev);saveEvent(ev);return ev;}
-function removeEvent(id){S.events=S.events.filter(e=>e.id!==id);dropEvent(id);}
-function rankCheck(){if(!S.profile)return;const h=heroInfo();const ri=rankIdx(xpOfLevel(h.age));
-  if(lastRankShown!==null&&ri>lastRankShown){const r=RANKS[ri];toast('РАНГ ГОДА '+r.r+'! '+r.name.toUpperCase()+(r.gear?' · НОВОЕ СНАРЯЖЕНИЕ: '+r.gear.toUpperCase():''),true);}
-  lastRankShown=ri;}
+function addEvent(o){const ev=Object.assign({id:uid(),date:todayIso(),kind:'manual',text:'',c:Date.now()},o);S.events.push(ev);saveEvent(ev);return ev;}
+function removeEvent(id){const ev=S.events.find(e=>e.id===id);if(ev)(ev.photos||[]).forEach(dropPhoto);S.events=S.events.filter(e=>e.id!==id);dropEvent(id);}
+function rankCheck(silent){if(!S.profile)return'';const ri=rankIdx(xpOfLevel(heroInfo().age));let msg='';
+  if(lastRankShown!==null&&ri!==lastRankShown){const r=RANKS[ri];
+    msg=ri>lastRankShown?'РАНГ ГОДА '+r.r+'! '+r.name.toUpperCase()+(r.gear?' · ОТКРЫТО МЕСТО: '+r.gear.toUpperCase():''):'РАНГ ГОДА ПОНИЗИЛСЯ ДО '+r.r;
+    if(!silent)toast(msg,ri>lastRankShown);}
+  lastRankShown=ri;return msg;}
+const px=(w,h,cells)=>'<svg class="pxi" viewBox="0 0 '+w+' '+h+'" aria-hidden="true">'+cells.map(c=>'<rect x="'+c[0]+'" y="'+c[1]+'" width="1" height="1"/>').join('')+'</svg>';
+const IC_OK=px(7,5,[[6,0],[5,1],[0,2],[4,2],[1,3],[3,3],[2,4]]),IC_NO=px(5,5,[[0,0],[4,0],[1,1],[3,1],[2,2],[1,3],[3,3],[0,4],[4,4]]);
+const signed=v=>(v<0?'−'+(-v):'+'+v)+' XP';
 function gain(evs,label){evs=[].concat(evs);const m=xpMap();const v=evs.reduce((s,e)=>s+(m[e.id]||0),0);
-  toast(v?'+'+v+' XP · '+label:label+' · ОПЫТ ЗА ЭТО УЖЕ ПОЛУЧЕН');rankCheck();}
+  const rm=rankCheck(true);toast(rm||(v?signed(v)+' · '+label:label+' · ОПЫТ ЗА ЭТО УЖЕ ПОЛУЧЕН'),!!rm);}
 
+/* ---------- quests: moving and failing ----------
+   On the deadline day a quest can be moved to tomorrow once for half the XP.
+   A second move, or a deadline that passes without a move, is a failure: minus the full reward.
+   A failed quest stays in the list and moves to the next day by itself; finishing it gives 0 XP. */
+function qReward(q){if(q.failed||(q.moves||0)>=2)return 0;return(q.moves||0)===1?Math.round(qBase(q.size)/2):qBase(q.size);}
+function failQuest(q,date,why){if(q.failed)return null;q.failed=true;q.failedAt=date;
+  const ev=addEvent({date,kind:'fail',size:q.size||'m',qid:q.id,text:'Задание провалено: '+q.title+(why?' ('+why+')':'')});q.failEventId=ev.id;return ev;}
+function processQuests(){
+  if(mode==='demo'||!S.profile)return[];const t=todayIso(),evs=[];let changed=false;
+  S.quests.forEach(q=>{if(q.done||!q.due||q.due>=t)return;
+    if(!q.failed){const next=iso(addDays(parse(q.due),1));const ev=failQuest(q,next<t?next:t,'срок прошёл');if(ev)evs.push(ev);}
+    q.due=t;changed=true;});
+  if(changed)saveCore();
+  return evs;}
+function moveQuest(id){const q=S.quests.find(x=>x.id===id);if(!q||q.done||q.failed||q.due!==todayIso())return;
+  q.moves=(q.moves||0)+1;q.due=iso(addDays(today(),1));
+  if(q.moves>=2){const ev=failQuest(q,todayIso(),'второй перенос');saveCore();render();gain(ev,'ЗАДАНИЕ ПРОВАЛЕНО');return;}
+  saveCore();render();toast('ПЕРЕНЕСЕНО НА ЗАВТРА · НАГРАДА '+qReward(q)+' XP');}
 function toggleQuest(id){const q=S.quests.find(x=>x.id===id);if(!q)return;
-  if(!q.done){q.done=true;q.doneAt=todayIso();const ev=addEvent({kind:'quest',size:q.size||'m',text:'Задание выполнено: '+q.title});q.eventId=ev.id;gain(ev,'ЗАДАНИЕ');}
-  else{q.done=false;delete q.doneAt;if(q.eventId)removeEvent(q.eventId);delete q.eventId;lastRankShown=null;rankCheck();}
+  if(!q.done){const mult=q.failed?0:((q.moves||0)===1?0.5:1);q.done=true;q.doneAt=todayIso();q.earned=Math.round(qBase(q.size)*mult);
+    const ev=addEvent({kind:'quest',size:q.size||'m',mult,qid:q.id,text:'Задание выполнено: '+q.title+(q.failed?' (после провала)':q.moves?' (с переносом)':'')});
+    q.eventId=ev.id;gain(ev,q.failed?'СДЕЛАНО, НО ПОСЛЕ ПРОВАЛА':'ЗАДАНИЕ');}
+  else{q.done=false;delete q.doneAt;delete q.earned;if(q.eventId)removeEvent(q.eventId);delete q.eventId;processQuests();lastRankShown=null;rankCheck(true);}
   saveCore();render();}
+function deleteQuest(id,asFail){const q=S.quests.find(x=>x.id===id);if(!q)return;let ev=null;
+  if(asFail)ev=failQuest(q,todayIso(),'удалено');
+  S.quests=S.quests.filter(x=>x.id!==id);saveCore();render();if(ev)gain(ev,'ЗАДАНИЕ ПРОВАЛЕНО');else toast('ЗАДАНИЕ УДАЛЕНО');}
 function toggleStep(id){const s=S.dream&&S.dream.steps.find(x=>x.id===id);if(!s)return;
   if(!s.done){s.done=true;const ev=addEvent({kind:'step',text:'Шаг к мечте: '+s.text});s.eventId=ev.id;gain(ev,'ШАГ К МЕЧТЕ');}
   else{s.done=false;if(s.eventId)removeEvent(s.eventId);delete s.eventId;lastRankShown=null;rankCheck();}
@@ -510,28 +763,35 @@ function render(){
   const v=document.getElementById('view');
   if(!S.profile){v.innerHTML='';return;}
   v.innerHTML=view==='stats'?viewStats():view==='dream'?viewDream():view==='life'?viewLife():viewHero();
-  if(view==='hero'){const cv=document.getElementById('heroCanvas');const h=heroInfo();drawHero(cv,S.profile.look||{},h.age,rankIdx(xpOfLevel(h.age)));}
+  if(view==='hero'){const cv=document.getElementById('heroCanvas');const h=heroInfo();drawHero(cv,S.profile.look||{},h.age,rankIdx(xpOfLevel(h.age)),S.profile.sex);}
 }
 function dueText(due,done){if(done||!due)return'';const n=diffDays(today(),parse(due));
   if(n<0)return'<span class="late">ПРОСРОЧЕНО НА '+(-n)+' '+plural(-n,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span>';
-  if(n===0)return'<span class="soon">СРОК СЕГОДНЯ</span>';
+  if(n===0)return'<span class="soon">СРОК СЕГОДНЯ. НЕ УСПЕВАЕШЬ? ПЕРЕНЕСИ НА ЗАВТРА</span>';
   return'<span class="'+(n<=14?'soon':'')+'">ОСТАЛОСЬ '+n+' '+plural(n,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span>';}
-function questItem(q){return'<li class="q'+(q.done?' done':'')+'"><button class="check'+(q.done?' on':'')+'" data-act="quest" data-id="'+q.id+'" aria-label="'+(q.done?'Вернуть задание':'Отметить выполненным')+'">'+(q.done?'✓':'')+'</button>'+
-  '<div><div class="q-title">'+esc(q.title)+'</div><div class="q-meta">'+(q.done?'ВЫПОЛНЕНО '+esc(fmtDate(q.doneAt)).toUpperCase():(q.due?'СРОК: '+esc(fmtDate(q.due)).toUpperCase()+'<br>':'')+dueText(q.due,q.done))+'</div></div>'+
-  '<div class="row" style="gap:2px;flex-direction:column;align-items:flex-end"><span class="q-xp">+'+XP.quest[q.size||'m']+' XP</span><button class="x" data-act="del-quest" data-id="'+q.id+'" aria-label="Удалить задание">×</button></div></li>';}
+function questItem(q){const t=todayIso(),rw=qReward(q),canMove=!q.done&&!q.failed&&q.due===t;
+  let meta;
+  if(q.done)meta='ВЫПОЛНЕНО '+esc(fmtDate(q.doneAt)).toUpperCase()+(q.failed?'<br><span class="late">ПОСЛЕ ПРОВАЛА</span>':'');
+  else if(q.failed)meta='<span class="late">ПРОВАЛЕНО '+esc(fmtDate(q.failedAt)).toUpperCase()+'</span><br>ПЕРЕЕЗЖАЕТ НА СЛЕДУЮЩИЙ ДЕНЬ, ПОКА НЕ СДЕЛАЕШЬ';
+  else meta=(q.due?'СРОК: '+esc(fmtDate(q.due)).toUpperCase()+'<br>':'')+dueText(q.due,false)+(q.moves?'<br><span class="soon">ПЕРЕНЕСЕНО: НАГРАДА −50%</span>':'');
+  const xpTxt=q.done?(q.earned!=null?'+'+q.earned:'+'+qBase(q.size))+' XP':(rw?'+'+rw+' XP':'0 XP');
+  return'<li class="q'+(q.done?' done':'')+(q.failed&&!q.done?' failed':'')+'"><button class="check'+(q.done?' on':'')+'" data-act="quest" data-id="'+q.id+'" aria-label="'+(q.done?'Вернуть задание':'Отметить выполненным')+'">'+(q.done?'✓':'')+'</button>'+
+  '<div><div class="q-title">'+esc(q.title)+'</div><div class="q-meta">'+meta+'</div>'+
+  (canMove?'<button class="btn-mini" data-act="move" data-id="'+q.id+'">НА ЗАВТРА · '+(q.moves?'ПРОВАЛ':'−50% XP')+'</button>':'')+'</div>'+
+  '<div class="row" style="gap:2px;flex-direction:column;align-items:flex-end"><span class="q-xp'+(rw||q.done?'':' zero')+'">'+xpTxt+'</span><button class="x" data-act="del-quest" data-id="'+q.id+'" aria-label="Удалить задание">×</button></div></li>';}
 const ICON={
-  coin:'<rect x="2" y="0" width="4" height="1"/><rect x="1" y="1" width="6" height="1"/><rect x="0" y="2" width="8" height="4"/><rect x="1" y="6" width="6" height="1"/><rect x="2" y="7" width="4" height="1"/><rect x="3" y="2" width="2" height="4" style="fill:var(--panel)"/>',
+  wallet:'<rect x="2" y="0" width="5" height="3" style="fill:var(--sage)"/><rect x="3" y="1" width="1" height="1" style="fill:var(--panel)"/><rect x="0" y="2" width="10" height="6"/><rect x="0" y="2" width="10" height="1" style="fill:var(--ink)"/><rect x="6" y="4" width="4" height="2" style="fill:var(--panel)"/><rect x="7" y="4" width="1" height="1" style="fill:var(--gold)"/>',
   up:'<rect x="0" y="5" width="2" height="3"/><rect x="3" y="3" width="2" height="5"/><rect x="6" y="0" width="2" height="8"/>',
   house:'<rect x="3" y="0" width="2" height="1"/><rect x="2" y="1" width="4" height="1"/><rect x="1" y="2" width="6" height="1"/><rect x="0" y="3" width="8" height="1"/><rect x="1" y="4" width="6" height="4"/><rect x="3" y="5" width="2" height="3" style="fill:var(--panel)"/>',
   car:'<rect x="3" y="0" width="5" height="1"/><rect x="2" y="1" width="7" height="2"/><rect x="3" y="1" width="2" height="2" style="fill:var(--panel)"/><rect x="6" y="1" width="2" height="2" style="fill:var(--panel)"/><rect x="0" y="3" width="12" height="3"/><rect x="11" y="3" width="1" height="1" style="fill:var(--gold)"/><rect x="2" y="5" width="3" height="3" style="fill:var(--ink)"/><rect x="8" y="5" width="3" height="3" style="fill:var(--ink)"/><rect x="3" y="6" width="1" height="1" style="fill:var(--bg)"/><rect x="9" y="6" width="1" height="1" style="fill:var(--bg)"/>'};
-const ICON_VB={car:'0 0 12 8'};
+const ICON_VB={car:'0 0 12 8',wallet:'0 0 10 8'};
 function slot(icon,color,label,value,sub,tone){
   const has=value!=null&&value!=='';
   return'<button class="slot'+(has?'':' empty')+'" data-act="finance" aria-label="'+label+': '+(has?esc(value):'не заполнено')+'"><svg viewBox="'+(ICON_VB[icon]||'0 0 8 8')+'" aria-hidden="true" style="fill:'+(has?color:'var(--dim)')+'">'+ICON[icon]+'</svg><span class="sl">'+label+'</span><span class="sv">'+(has?esc(value):'+')+'</span>'+(has&&sub?'<span class="ss tone-'+(tone||'none')+'">'+sub+'</span>':'')+'</button>';}
 function slotsHtml(side){
   const f=S.fin||{},w=wealth(S.fin)||{};
   if(side==='left')return'<div class="side">'+
-    slot('coin','var(--gold)','ДОХОД',f.income?rubShort(f.income):'','В МЕСЯЦ',w.income&&w.income.tone)+
+    slot('wallet','var(--gold)','ДОХОД',f.income?rubShort(f.income):'','В МЕСЯЦ',w.income&&w.income.tone)+
     slot('up','var(--sage)','ДОСТАТОК',w.pm?num1(w.pm.x)+' ПМ':'',w.pm&&w.pm.short,w.pm&&w.pm.tone)+'</div>';
   return'<div class="side">'+
     slot('house','var(--coral)','ЖИЛЬЁ',f.area?num1(f.area)+' м²':'',w.area?num1(w.area.v)+' М² НА ЧЕЛ.':'',w.area&&w.area.tone)+
@@ -540,12 +800,12 @@ function viewHero(){
   const h=heroInfo(),xp=xpOfLevel(h.age),ri=rankIdx(xp),r=RANKS[ri],next=RANKS[ri+1];
   const xpProg=next?(xp-r.min)/(next.min-r.min)*100:100;
   const gear=gearNames(S.profile.look,ri).join(' · ');
-  const active=S.quests.filter(q=>!q.done).sort((a,b)=>(a.due||'9999')<(b.due||'9999')?-1:1);
+  const active=S.quests.filter(q=>!q.done).sort((a,b)=>(a.failed?0:1)-(b.failed?0:1)||((a.due||'9999')<(b.due||'9999')?-1:1));const qc=questCounts(h.age);
   const done=S.quests.filter(q=>q.done).sort((a,b)=>a.doneAt<b.doneAt?1:-1);
   const dr=S.dream;const dDone=dr?dr.steps.filter(s=>s.done).length:0,dTot=dr?dr.steps.length:0;
   return'<section class="hero-head"><div class="hero-name">'+esc(S.profile.name).toUpperCase()+'</div><div class="hero-lvl">УРОВЕНЬ<b>'+h.age+'</b></div></section>'+
   '<div class="stage">'+slotsHtml('left')+'<div class="center"><canvas id="heroCanvas" class="sprite" width="144" height="198" role="img" aria-label="Пиксельный персонаж, уровень '+h.age+'"></canvas><div class="pedestal"></div></div>'+slotsHtml('right')+'</div>'+
-  '<button class="gear" data-act="wardrobe">'+(ri>0?'СНАРЯЖЕНИЕ: <span>'+(gear?gear.toUpperCase():'СНЯТО')+'</span><br>ПЕРЕОДЕТЬ ►':'СНАРЯЖЕНИЕ ОТКРОЕТСЯ НА РАНГЕ C ►')+'</button>'+
+  '<button class="gear" data-act="wardrobe">'+(ri>0&&gear?'СНАРЯЖЕНИЕ: <span>'+gear.toUpperCase()+'</span><br>':'')+'ГАРДЕРОБ ►</button>'+
   '<div class="meters">'+
     '<div class="mlabel">ДО УРОВНЯ '+(h.age+1)+'<span>'+h.left+' '+plural(h.left,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span></div>'+
     '<div class="pbar" role="progressbar" aria-valuenow="'+Math.round(h.prog)+'" aria-valuemin="0" aria-valuemax="100" aria-label="Прогресс уровня"><i style="width:'+h.prog.toFixed(1)+'%"></i></div>'+
@@ -553,7 +813,7 @@ function viewHero(){
     '<div class="pbar xp" role="progressbar" aria-valuenow="'+xp+'" aria-label="Опыт года"><i style="width:'+Math.min(100,xpProg).toFixed(1)+'%"></i></div>'+
     '<div class="rank-line"><div class="rank">'+r.r+'</div><p><b>'+r.name+'.</b> '+(next?'До ранга '+next.r+' ещё '+(next.min-xp)+' XP'+(next.gear?', он откроет '+next.gear+'.':'.'):'Это максимум. Легенда!')+'</p></div>'+
   '</div>'+
-  '<section class="box"><h2>ЗАДАНИЯ <small>'+active.length+' АКТИВН.</small></h2>'+
+  '<section class="box"><h2>ЗАДАНИЯ <a class="qcount" href="#stats" aria-label="За этот уровень выполнено '+qc.done+', провалено '+qc.failed+'. Открыть всю статистику"><span class="tone-good">'+IC_OK+qc.done+'</span> <span class="tone-low">'+IC_NO+qc.failed+'</span></a></h2>'+
     (active.length?'<ul class="qlist">'+active.map(questItem).join('')+'</ul>':'<p class="muted">Нет активных заданий. Запиши желание и срок, когда хочешь его исполнить.</p>')+
     '<button class="btn ghost wide" data-act="add-quest">+ НОВОЕ ЗАДАНИЕ</button>'+
     (done.length?'<details><summary>ВЫПОЛНЕНО ('+done.length+')</summary><ul class="qlist" style="margin-top:10px">'+done.map(questItem).join('')+'</ul></details>':'')+
@@ -562,7 +822,7 @@ function viewHero(){
     (dr?'<span class="title">'+esc(dr.title)+'</span>'+(dr.achieved?'<span class="muted">Мечта сбылась '+esc(fmtDate(dr.achieved))+'</span>':'<div class="pbar xp"><i style="width:'+(dTot?dDone/dTot*100:0)+'%"></i></div><span class="muted">Шагов пройдено: '+dDone+' из '+dTot+'</span>'):'<span class="muted">Мечта ещё не записана. Запиши её и разбей на шаги.</span>')+
   '</a>'+
   '<section class="box"><details><summary>КАК ПРОКАЧАТЬ ГОД</summary><p class="muted" style="margin-top:10px">Уровень растёт сам, в день рождения. А вот каким будет год, решаешь ты. Опыт за год:</p><ul class="xp-table">'+
-    '<li>Малое задание (на неделю)<b>+'+XP.quest.s+'</b></li><li>Среднее задание (на месяцы)<b>+'+XP.quest.m+'</b></li><li>Большое задание (событие года)<b>+'+XP.quest.l+'</b></li>'+
+    '<li>Малое задание (на неделю)<b>+'+XP.quest.s+'</b></li><li>Перенос на завтра (один раз)<b>−50%</b></li><li>Провал (срок прошёл или второй перенос)<b>−награда</b></li><li>Среднее задание (на месяцы)<b>+'+XP.quest.m+'</b></li><li>Большое задание (событие года)<b>+'+XP.quest.l+'</b></li>'+
     '<li>Шаг к мечте<b>+'+XP.step+'</b></li><li>Исполнить мечту<b>+'+XP.dream+'</b></li>'+
     '<li>Рекорд в упражнении (раз в неделю на упражнение)<b>+'+XP.record+'</b></li><li>Рост дохода, жилья, новая машина (раз в месяц на каждое)<b>+'+XP.wealth+'</b></li>'+
     '<li>Запись в ленте (первая за день)<b>+'+XP.manual+'</b></li><li>Если в ней есть фото<b>+'+(XP.manual+XP.photo)+'</b></li></ul>'+
@@ -599,7 +859,14 @@ function calCard(){
   '<p class="how">'+m.how+' Позже, в приложении для телефона, их можно будет подтягивать из часов автоматически.</p><p class="src">'+m.src+'</p></section>';}
 function viewStats(){const h=heroInfo();
   return'<p class="muted" style="margin:4px 0 16px">Сравнение с людьми твоего возраста и пола. Синяя полоса показывает средний диапазон, жёлтая метка — твой последний результат.'+(h.age<18?' Нормы рассчитаны на взрослых, для тебя они ориентировочные.':'')+'</p>'+
-  statCard('squat',h)+statCard('push',h)+statCard('plank',h)+calCard()+'<div class="sec-title">ДОСТАТОК</div>'+wealthCards();}
+  statCard('squat',h)+statCard('push',h)+statCard('plank',h)+calCard()+'<div class="sec-title" id="quest-stats">ЗАДАНИЯ</div>'+questStats(h)+'<div class="sec-title">ДОСТАТОК</div>'+wealthCards();}
+function questStats(h){const all=questCounts(null),tot=all.done+all.failed;
+  const lv=[...new Set(S.events.filter(e=>e.kind==='quest'||e.kind==='fail').map(e=>levelOf(e.date)))].concat([h.age]).filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>b-a);
+  const m=xpMap();
+  return'<section class="box"><div class="stat-top"><h2>ЗА ВСЁ ВРЕМЯ</h2>'+(tot?'<span class="chip tone-'+(all.done/tot>=0.7?'good':all.done/tot>=0.4?'mid':'low')+'">УСПЕХ '+Math.round(all.done/tot*100)+'%</span>':'')+'</div>'+
+  '<div class="two"><div><div class="big" style="color:var(--sage)">'+all.done+'</div><p class="muted">выполнено</p></div><div><div class="big" style="color:var(--coral)">'+all.failed+'</div><p class="muted">провалено</p></div></div>'+
+  '<dl class="kv">'+lv.map(l=>{const c=questCounts(l),x=xpOfLevel(l,m);return'<dt>Уровень '+l+(l===h.age?' (сейчас)':'')+'</dt><dd><span class="tone-good">'+IC_OK+' '+c.done+'</span>  <span class="tone-low">'+IC_NO+' '+c.failed+'</span> · ранг '+RANKS[rankIdx(x)].r+'</dd>';}).join('')+'</dl>'+
+  '<p class="how">Выполненным считается задание, сделанное в срок или с одним переносом. Второй перенос, пропущенный срок и удаление после переноса — провал.</p></section>';}
 function gaugeHtml(v,max,band,scale){const pc=x=>Math.max(0,Math.min(100,x/max*100)).toFixed(1);
   return'<div class="gauge" aria-hidden="true"><span class="band" style="left:'+pc(band[0])+'%;width:'+(pc(band[1])-pc(band[0])).toFixed(1)+'%"></span>'+(v!=null?'<span class="mark" style="left:'+pc(v)+'%"></span>':'')+'</div><div class="gscale"><span>0</span><span>'+scale+'</span></div>';}
 function wealthCards(){
@@ -639,10 +906,42 @@ function viewDream(){
   if(S.pastDreams.length)html+='<section class="box"><h2>СБЫВШИЕСЯ МЕЧТЫ</h2><ul class="past">'+S.pastDreams.map(p=>'<li>★ '+esc(p.title)+' · '+esc(fmtDate(p.achieved))+'</li>').join('')+'</ul></section>';
   return html;}
 let XM={};
-function entryHtml(e){const auto=e.kind!=='manual';const fut=e.date>todayIso();const k=fut?'plan':e.kind;
+function photoImg(e,pid,i,cls){const d=getPhoto(pid);
+  return'<img class="'+cls+'" data-pid="'+esc(pid)+'" data-act="view" data-id="'+esc(e.id)+'" data-i="'+i+'"'+(d?' src="'+d+'"':'')+' alt="Фото '+(i+1)+' к записи">';}
+function entryHtml(e){const auto=e.kind!=='manual';const fut=e.date>todayIso();const k=fut?'plan':e.kind;const pids=e.photos||[];
+  const xv=XM[e.id];
+  const foot=fut?(e.kind==='manual'?'XP ПОСЛЕ СОБЫТИЯ':''):(e.kind==='quest'&&e.mult===0?'<span style="color:var(--dim)">0 XP: ПОСЛЕ ПРОВАЛА</span>':xv?'<span'+(xv<0?' style="color:var(--coral)"':'')+'>'+signed(xv)+'</span>':(e.kind==='manual'||e.kind==='record'||e.kind==='wealth'?'<span style="color:var(--dim)">БЕЗ XP: ЛИМИТ</span>':''));
   return'<article class="entry'+(auto?' auto':'')+'"><div class="entry-top"><span class="tag k-'+k+'">'+KIND_LABEL[k]+'</span><span>'+esc(fmtDate(e.date)).toUpperCase()+'</span></div>'+
-  (photoOf(e)?'<img src="'+photoOf(e)+'" alt="Фото к записи" loading="lazy">':'')+'<p>'+esc(e.text)+'</p>'+
-  '<div class="entry-foot"><span>'+(fut?(e.kind==='manual'?'XP ПОСЛЕ СОБЫТИЯ':''):(XM[e.id]?'+'+XM[e.id]+' XP':(e.kind==='manual'||e.kind==='record'||e.kind==='wealth'?'<span style="color:var(--dim)">БЕЗ XP: ЛИМИТ</span>':'')))+'</span>'+(e.kind==='manual'?'<button class="x" data-act="del-entry" data-id="'+e.id+'" aria-label="Удалить запись">УДАЛИТЬ</button>':'')+'</div></article>';}
+  (pids.length?photoImg(e,pids[0],0,'ph-main')+(pids.length>1?'<div class="thumbs">'+pids.slice(1).map((p,i)=>photoImg(e,p,i+1,'ph-th')).join('')+'</div>':''):'')+
+  (e.text?'<p>'+esc(e.text)+'</p>':'')+
+  '<div class="entry-foot"><span>'+foot+'</span>'+(e.kind==='manual'?'<span class="row" style="gap:14px"><button class="x" data-act="edit-entry" data-id="'+e.id+'">ИЗМЕНИТЬ</button><button class="x" data-act="del-entry" data-id="'+e.id+'" aria-label="Удалить запись">УДАЛИТЬ</button></span>':'')+'</div></article>';}
+
+/* ---------- photo viewer: swipe between photos, pinch or double tap to zoom ---------- */
+let VW=null;
+function openViewer(evId,idx){const e=S.events.find(x=>x.id===evId);if(!e||!e.photos||!e.photos.length)return;VW={pids:e.photos.slice(),i:Math.min(idx||0,e.photos.length-1),s:1,x:0,y:0};renderViewer();}
+function closeViewer(){VW=null;renderViewer();}
+function stepViewer(d){if(!VW)return;VW.i=(VW.i+d+VW.pids.length)%VW.pids.length;VW.s=1;VW.x=0;VW.y=0;renderViewer();}
+function renderViewer(){const r=document.getElementById('viewerRoot');if(!VW){r.innerHTML='';return;}
+  const pid=VW.pids[VW.i],d=getPhoto(pid),many=VW.pids.length>1;
+  r.innerHTML='<div class="viewer" role="dialog" aria-modal="true" aria-label="Просмотр фото"><div class="vw-top"><span>'+(many?(VW.i+1)+' / '+VW.pids.length:'ФОТО')+'</span><button class="navbtn" data-act="vw-close" aria-label="Закрыть просмотр">✕</button></div>'+
+    '<div class="vw-stage" id="vwStage"><img id="vwImg" data-pid="'+esc(pid)+'"'+(d?' src="'+d+'"':'')+' alt="Фото '+(VW.i+1)+'" draggable="false"></div>'+
+    '<div class="vw-bottom">'+(many?'<button class="navbtn" data-act="vw-prev" aria-label="Предыдущее фото">◄</button>':'<span></span>')+'<span>ДВА ТАПА: УВЕЛИЧИТЬ</span>'+(many?'<button class="navbtn" data-act="vw-next" aria-label="Следующее фото">►</button>':'<span></span>')+'</div></div>';
+  const st=document.getElementById('vwStage'),im=document.getElementById('vwImg');
+  const pts=new Map();let d0=0,s0=1,last=null,downX=null,moved=false,lastTap=0;
+  const apply=()=>{im.style.transform='translate('+VW.x+'px,'+VW.y+'px) scale('+VW.s+')';};
+  st.addEventListener('pointerdown',ev=>{try{st.setPointerCapture(ev.pointerId);}catch(e){}pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+    if(pts.size===2){const[a,b]=[...pts.values()];d0=Math.hypot(a.x-b.x,a.y-b.y)||1;s0=VW.s;moved=true;}
+    else{last={x:ev.clientX,y:ev.clientY};downX=ev.clientX;moved=false;}});
+  st.addEventListener('pointermove',ev=>{if(!pts.has(ev.pointerId))return;pts.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+    if(pts.size===2){const[a,b]=[...pts.values()];VW.s=Math.min(5,Math.max(1,s0*Math.hypot(a.x-b.x,a.y-b.y)/d0));if(VW.s===1){VW.x=0;VW.y=0;}apply();}
+    else if(last){const dx=ev.clientX-last.x,dy=ev.clientY-last.y;if(Math.abs(ev.clientX-downX)>6)moved=true;if(VW.s>1){VW.x+=dx;VW.y+=dy;apply();}last={x:ev.clientX,y:ev.clientY};}});
+  const up=ev=>{if(!pts.has(ev.pointerId))return;pts.delete(ev.pointerId);
+    if(pts.size){last=null;return;}
+    if(VW.s===1&&downX!==null&&Math.abs(ev.clientX-downX)>60&&many){stepViewer(ev.clientX<downX?1:-1);return;}
+    if(!moved){const now=Date.now();if(now-lastTap<320){if(VW.s>1){VW.s=1;VW.x=0;VW.y=0;}else VW.s=2.5;apply();lastTap=0;}else lastTap=now;}
+    last=null;downX=null;};
+  st.addEventListener('pointerup',up);st.addEventListener('pointercancel',up);}
+
 function viewLife(){
   XM=xpMap();const t=today();if(!calMonth)calMonth=new Date(t.getFullYear(),t.getMonth(),1);
   const y=calMonth.getFullYear(),mo=calMonth.getMonth(),first=(new Date(y,mo,1).getDay()+6)%7,dim=new Date(y,mo+1,0).getDate();
@@ -670,25 +969,35 @@ function openModal(html,onMount){const root=document.getElementById('modalRoot')
 function closeModal(){document.getElementById('modalRoot').innerHTML='';}
 function swatches(name,list,cur){return'<div class="sw">'+list.map((c,i)=>'<label><input type="radio" name="'+name+'" value="'+i+'"'+(i===cur?' checked':'')+' aria-label="Цвет '+(i+1)+'"><span style="background:'+c+'"></span></label>').join('')+'</div>';}
 function profileModal(isNew){
-  const p=isNew?{name:'',birth:'',sex:'m',look:{skin:0,hair:0,shirt:0,beard:false}}:S.profile;const L=p.look||{};const R=isNew?{daily:true,deadlines:true,time:'21:00'}:remSettings();
+  const p=isNew?{name:'',birth:'',sex:'m',look:{skin:0,hair:0,beard:false}}:S.profile;const L=normLook(p.look,p.sex);const R=isNew?{daily:true,deadlines:true,time:'21:00'}:remSettings();
   openModal('<h3>'+(isNew?'НОВЫЙ ГЕРОЙ':'ПРОФИЛЬ ГЕРОЯ')+'</h3><form data-form="profile" style="display:flex;flex-direction:column;gap:14px">'+
-    '<label class="lbl">ИМЯ<input class="field" id="pName" maxlength="16" value="'+esc(p.name)+'" placeholder="Никита" autofocus></label>'+
+    '<label class="lbl">ИМЯ<input class="field" id="pName" maxlength="16" value="'+esc(p.name)+'" placeholder="Имя" autofocus></label>'+
     '<label class="lbl">ДАТА РОЖДЕНИЯ<input class="field" id="pBirth" type="date" value="'+esc(p.birth)+'" max="'+todayIso()+'"></label>'+
     '<div class="lbl">ПОЛ (НУЖЕН ДЛЯ НОРМ)<div class="seg"><label><input type="radio" name="sex" value="m"'+(p.sex!=='f'?' checked':'')+'><span>МУЖСКОЙ</span></label><label><input type="radio" name="sex" value="f"'+(p.sex==='f'?' checked':'')+'><span>ЖЕНСКИЙ</span></label></div></div>'+
     '<div class="lbl">ВНЕШНОСТЬ<div class="look"><canvas id="lookCv" width="96" height="132" aria-label="Предпросмотр персонажа"></canvas><div style="display:flex;flex-direction:column;gap:10px;min-width:0">'+
-      '<span>КОЖА</span>'+swatches('skin',SKIN,L.skin||0)+'<span>ВОЛОСЫ</span>'+swatches('hair',HAIR,L.hair||0)+'<span>ОДЕЖДА</span>'+swatches('shirt',SHIRT,L.shirt||0)+
-      '<label class="chk"><input type="checkbox" id="pBeard"'+(L.beard?' checked':'')+'>Борода</label></div></div></div>'+
+      '<span>КОЖА</span>'+swatches('skin',SKIN,L.skin||0)+'<span>ЦВЕТ ВОЛОС</span>'+swatches('hair',HAIR,L.hair||0)+
+      '<label class="chk" id="beardRow"'+(p.sex==='f'?' hidden':'')+'><input type="checkbox" id="pBeard"'+(L.beard?' checked':'')+'>Борода</label></div></div></div>'+
+    '<div class="lbl">ПРИЧЁСКА<div class="seg" id="hairSeg">'+hairSeg(p.sex,L.style)+'</div></div>'+
+    '<p class="muted">Одежду и снаряжение выбирай в гардеробе: кнопка под героем.</p>'+
     (N?'<div class="lbl">НАПОМИНАНИЯ'+
       '<label class="chk"><input type="checkbox" id="rDaily"'+(R.daily?' checked':'')+'>Вечером: «Как прошёл день? Запиши»</label>'+
       '<label class="chk"><input type="checkbox" id="rDead"'+(R.deadlines?' checked':'')+'>Сроки заданий: за 3 дня и в день срока</label>'+
       '<label class="lbl" style="margin-top:4px">ВО СКОЛЬКО<input class="field" id="rTime" type="time" value="'+esc(R.time)+'"></label></div>':'')+
     '<p class="err" id="pErr" hidden></p><div class="row"><button class="btn" type="submit">'+(isNew?'НАЧАТЬ ПУТЬ':'СОХРАНИТЬ')+'</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div>'+
-    (!isNew&&mode!=='demo'?'<div class="lbl" style="margin-top:8px">РЕЗЕРВНАЯ КОПИЯ<p class="muted" style="font-family:var(--body)">Данные хранятся только на этом телефоне. Сохрани копию в файл (например, в Google Диск), чтобы перенести её на новый телефон.</p>'+
+    (!isNew&&mode!=='demo'?'<div class="lbl" style="margin-top:8px">РЕЗЕРВНАЯ КОПИЯ<p class="muted" style="font-family:var(--body)">'+(N?'Данные хранятся только на этом телефоне. Сохрани копию в файл (например, на Google Диск), чтобы перенести её на новый телефон.':P.db?'Здесь данные хранятся в Claude, отдельно от приложения на телефоне. Через файл копии их можно перенести в приложение или обратно.':'Данные хранятся только в этом браузере. Сохрани копию в файл, чтобы не потерять их.')+'</p>'+
       '<div class="row"><button class="btn ghost" type="button" data-act="backup">СОХРАНИТЬ КОПИЮ</button><button class="btn ghost" type="button" data-act="restore">ВОССТАНОВИТЬ</button></div></div>'+
       '<button class="btn-text" type="button" data-act="reset" style="align-self:flex-start;color:var(--coral)">УДАЛИТЬ ВСЕ ДАННЫЕ</button>':
      (isNew?'<button class="btn-text" type="button" data-act="restore" style="align-self:flex-start">ВОССТАНОВИТЬ ИЗ КОПИИ</button>':''))+'</form>',
-  root=>{const form=root.querySelector('form');const upd=()=>{const look=readLook(form);const b=form.querySelector('#pBirth').value;let age=25;if(b)age=ageAt(parse(b),today());drawHero(root.querySelector('#lookCv'),look,age,0);};form.addEventListener('input',upd);form.addEventListener('change',upd);upd();});}
-function readLook(f){const v=n=>Number((f.querySelector('input[name="'+n+'"]:checked')||{}).value||0);return{skin:v('skin'),hair:v('hair'),shirt:v('shirt'),beard:f.querySelector('#pBeard').checked};}
+  root=>{const form=root.querySelector('form');
+    const upd=e=>{const sex=formSex(form);
+      if(e&&e.target&&e.target.name==='sex'){form.querySelector('#hairSeg').innerHTML=hairSeg(sex,null);form.querySelector('#beardRow').hidden=sex==='f';}
+      const look=Object.assign({},p.look,readLook(form));const b=form.querySelector('#pBirth').value;let age=25;if(b)age=ageAt(parse(b),today());drawHero(root.querySelector('#lookCv'),look,age,0,sex);};
+    form.addEventListener('input',upd);form.addEventListener('change',upd);upd();});}
+const formSex=f=>((f.querySelector('input[name="sex"]:checked')||{}).value==='f'?'f':'m');
+function hairSeg(sex,cur){sex=sex==='f'?'f':'m';const opts=HAIRSTYLES[sex];if(!opts[cur])cur=Object.keys(opts)[0];
+  return Object.keys(opts).map(k=>'<label><input type="radio" name="hstyle" value="'+k+'"'+(k===cur?' checked':'')+'><span>'+opts[k].toUpperCase()+'</span></label>').join('');}
+function readLook(f){const v=n=>Number((f.querySelector('input[name="'+n+'"]:checked')||{}).value||0);
+  return{skin:v('skin'),hair:v('hair'),style:(f.querySelector('input[name="hstyle"]:checked')||{}).value,beard:formSex(f)==='m'&&f.querySelector('#pBeard').checked};}
 function questModal(){openModal('<h3>НОВОЕ ЗАДАНИЕ</h3><form data-form="quest" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">ЧЕГО ХОЧЕШЬ<input class="field" id="qTitle" maxlength="120" placeholder="Прыгнуть с парашютом" autofocus></label>'+
   '<label class="lbl">КОГДА ХОЧУ ЭТО СДЕЛАТЬ<input class="field" id="qDue" type="date" min="'+todayIso()+'"></label>'+
   '<div class="lbl">РАЗМЕР ЗАДАНИЯ<div class="seg">'+Object.keys(QSIZE).map(k=>'<label><input type="radio" name="qsize" value="'+k+'"'+(k==='m'?' checked':'')+'><span>'+QSIZE[k].label+'<br>+'+XP.quest[k]+' XP</span></label>').join('')+'</div></div>'+
@@ -698,14 +1007,25 @@ function dreamModal(){const d=S.dream||{title:'',why:''};openModal('<h3>МОЯ �
   '<label class="lbl">ЗАЧЕМ ОНА МНЕ<textarea class="field" id="dWhy" maxlength="400" placeholder="Что изменится, когда она сбудется?">'+esc(d.why)+'</textarea></label><p class="err" id="dErr" hidden></p>'+
   '<div class="row"><button class="btn" type="submit">СОХРАНИТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>');}
 function wardrobeModal(){
-  const h=heroInfo(),ri=rankIdx(xpOfLevel(h.age)),g=gearOf(S.profile.look),r=RANKS[ri];
-  const rows=Object.keys(GEAR).map(k=>{const G=GEAR[k],open=ri>=G.rank;
-    return'<div class="lbl">'+G.label+(open?'':' · ОТКРОЕТСЯ НА РАНГЕ '+RANKS[G.rank].r)+'<div class="seg">'+Object.keys(G.opts).map(o=>'<label><input type="radio" name="g-'+k+'" value="'+o+'"'+(g[k]===o?' checked':'')+(open?'':' disabled')+'><span'+(open?'':' style="opacity:.45"')+'>'+G.opts[o].toUpperCase()+'</span></label>').join('')+'</div></div>';}).join('');
-  openModal('<h3>СНАРЯЖЕНИЕ</h3><p class="muted">Сейчас ранг года '+r.r+' («'+r.name+'»). Каждый ранг открывает новое место для вещи, а что надеть, выбираешь ты.</p>'+
-    '<form data-form="wardrobe" style="display:flex;flex-direction:column;gap:14px"><div class="look"><canvas id="wardCv" width="96" height="132" aria-label="Предпросмотр снаряжения"></canvas><p class="muted">В день рождения начинается новый год: снаряжение нужно будет заработать снова, а выбор вещей сохранится.</p></div>'+rows+
+  const h=heroInfo(),ri=rankIdx(xpOfLevel(h.age)),sex=S.profile.sex,L=normLook(S.profile.look,sex),o=L.outfit,g=gearOf(L),r=RANKS[ri];
+  const optGrid=(name,items,cur)=>'<div class="optgrid">'+Object.keys(items).filter(k=>!items[k].only||items[k].only===sex).map(k=>
+    '<label><input type="radio" name="'+name+'" value="'+k+'"'+(k===cur?' checked':'')+'><span>'+itemName(items[k],sex).toUpperCase()+'<small>'+STYLES[items[k].style]+'</small></span></label>').join('')+'</div>';
+  const gearRows=Object.keys(GEAR).map(k=>{const G=GEAR[k],open=ri>=G.rank;
+    return'<div class="lbl">'+G.label+(open?'':' · ОТКРОЕТСЯ НА РАНГЕ '+RANKS[G.rank].r)+'<div class="seg">'+Object.keys(G.opts).map(v=>'<label><input type="radio" name="g-'+k+'" value="'+v+'"'+(g[k]===v?' checked':'')+(open?'':' disabled')+'><span'+(open?'':' style="opacity:.45"')+'>'+G.opts[v].toUpperCase()+'</span></label>').join('')+'</div></div>';}).join('');
+  openModal('<h3>ГАРДЕРОБ</h3>'+
+    '<form data-form="wardrobe" style="display:flex;flex-direction:column;gap:14px"><div class="look"><canvas id="wardCv" width="96" height="132" aria-label="Предпросмотр героя"></canvas><p class="muted">Одежда доступна вся и сразу, вещи из разных стилей можно смешивать.</p></div>'+
+    '<div class="lbl">СТИЛЬ ЦЕЛИКОМ<div class="seg">'+Object.keys(PRESETS).map(k=>'<button type="button" class="presetbtn" data-act="w-preset" data-p="'+k+'">'+STYLES[k]+'</button>').join('')+'</div></div>'+
+    '<div class="lbl">ВЕРХ'+optGrid('o-top',TOPS,o.top)+'</div>'+
+    '<div class="lbl">ЦВЕТ ВЕРХА'+swatches('o-color',SHIRT,o.color)+'</div>'+
+    '<div class="lbl" id="botBlock">НИЗ<span id="dressNote" class="muted" style="font-family:var(--body)"'+(o.top==='dress'?'':' hidden')+'>Платье закрывает низ.</span>'+optGrid('o-bottom',BOTTOMS,o.bottom)+'</div>'+
+    '<div class="lbl">ОБУВЬ'+optGrid('o-shoes',SHOES,o.shoes)+'</div>'+
+    '<div class="sec-title" style="margin:8px 0 0">СНАРЯЖЕНИЕ ГОДА</div><p class="muted">Сейчас ранг года '+r.r+' («'+r.name+'»). Каждый ранг открывает новое место для вещи. В день рождения начинается новый год: снаряжение нужно заработать снова, а выбор вещей сохранится.</p>'+gearRows+
     '<div class="row"><button class="btn" type="submit">НАДЕТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>',
-  root=>{const form=root.querySelector('form');const read=()=>{const o={};Object.keys(GEAR).forEach(k=>{o[k]=(form.querySelector('input[name="g-'+k+'"]:checked')||{}).value||g[k];});return o;};
-    const upd=()=>drawHero(root.querySelector('#wardCv'),Object.assign({},S.profile.look,{gear:read()}),h.age,ri);form.addEventListener('change',upd);upd();form._read=read;});}
+  root=>{const form=root.querySelector('form');const val=n=>(form.querySelector('input[name="'+n+'"]:checked')||{}).value;
+    const read=()=>{const gr={};Object.keys(GEAR).forEach(k=>{gr[k]=val('g-'+k)||g[k];});
+      return{gear:gr,outfit:{top:val('o-top')||o.top,bottom:val('o-bottom')||o.bottom,shoes:val('o-shoes')||o.shoes,color:Number(val('o-color')||0)}};};
+    const upd=()=>{const x=read();form.querySelector('#dressNote').hidden=x.outfit.top!=='dress';drawHero(root.querySelector('#wardCv'),Object.assign({},L,x),h.age,ri,sex);};
+    form.addEventListener('change',upd);form._read=read;form._upd=upd;upd();});}
 function financeModal(){const f=S.fin||{people:1,home:'own'};const c=f.car||{};const nv=v=>v!=null&&v!==''?v:'';
   openModal('<h3>ДОСТАТОК</h3><form data-form="finance" novalidate style="display:flex;flex-direction:column;gap:14px">'+
   '<label class="lbl">МОЙ ДОХОД В МЕСЯЦ НА РУКИ, ₽<input class="field" id="fIncome" type="number" inputmode="numeric" min="0" step="any" value="'+nv(f.income)+'" placeholder="85000" autofocus></label>'+
@@ -738,15 +1058,28 @@ function saveFinance(form){
   saveCore();closeModal();render();
   if(evs.length)gain(evs,'РОСТ ДОСТАТКА');else toast('ДОСТАТОК ОБНОВЛЁН');
   return true;}
-let pendingPhoto=null;
-function entryModal(){pendingPhoto=null;const d=selDay||todayIso();
-  openModal('<h3>ЗАПИСЬ В ЛЕНТУ</h3><form data-form="entry" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">ДАТА<input class="field" id="eDate" type="date" value="'+d+'"></label>'+
-  '<label class="lbl">ЧТО ПРОИЗОШЛО<textarea class="field" id="eText" maxlength="1000" placeholder="Сегодня впервые пробежал 10 км" autofocus></textarea></label>'+
-  '<label class="lbl">ФОТО (НЕОБЯЗАТЕЛЬНО)<input class="field" id="ePhoto" type="file" accept="image/*"></label><div class="photo-prev" id="ePrev"></div>'+
-  '<p class="muted">Событие в будущем попадёт в раздел «Впереди», а опыт за него засчитается, когда день наступит.</p><p class="err" id="eErr" hidden></p>'+
+const MAX_PHOTOS=5;
+let ED=null;
+function entryModal(id){
+  const ev=id?S.events.find(e=>e.id===id&&e.kind==='manual'):null;
+  ED={id:ev?ev.id:null,photos:(ev&&ev.photos||[]).map(pid=>({pid,data:getPhoto(pid),isNew:false})),removed:[]};
+  const d=ev?ev.date:(selDay||todayIso());
+  openModal('<h3>'+(ev?'ИЗМЕНИТЬ ЗАПИСЬ':'ЗАПИСЬ В ЛЕНТУ')+'</h3><form data-form="entry" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">ДАТА<input class="field" id="eDate" type="date" value="'+esc(d)+'"></label>'+
+  '<label class="lbl">ЧТО ПРОИЗОШЛО<textarea class="field" id="eText" maxlength="1000" placeholder="Сегодня впервые пробежал 10 км"'+(ev?'':' autofocus')+'>'+esc(ev?ev.text:'')+'</textarea></label>'+
+  '<div class="lbl">ФОТО · ДО '+MAX_PHOTOS+'<div class="pgrid" id="ePhotos"></div><input id="ePhoto" type="file" accept="image/*" multiple hidden></div>'+
+  (ev?'':'<p class="muted">Событие в будущем попадёт в раздел «Впереди», а опыт за него засчитается, когда день наступит.</p>')+'<p class="err" id="eErr" hidden></p>'+
   '<div class="row"><button class="btn" type="submit">СОХРАНИТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>',
-  root=>{root.querySelector('#ePhoto').addEventListener('change',async ev=>{const f=ev.target.files&&ev.target.files[0];const prev=root.querySelector('#ePrev');if(!f){pendingPhoto=null;prev.innerHTML='';return;}
-    prev.innerHTML='<p class="muted">Сжимаю фото…</p>';try{pendingPhoto=await shrink(f);prev.innerHTML='<img src="'+pendingPhoto+'" alt="Предпросмотр фото">';}catch(e){pendingPhoto=null;prev.innerHTML='<p class="err">Не получилось открыть это фото. Попробуй JPG или PNG.</p>';}});});}
+  root=>{renderEdPhotos();
+    ED.photos.forEach(p=>{if(!p.data)photoAsync(p.pid).then(v=>{if(v){p.data=v;renderEdPhotos();}});});
+    root.querySelector('#ePhoto').addEventListener('change',async e=>{const files=[...(e.target.files||[])];e.target.value='';if(!files.length||!ED)return;
+      const room=MAX_PHOTOS-ED.photos.length;if(files.length>room)toast('МОЖНО НЕ БОЛЬШЕ '+MAX_PHOTOS+' ФОТО');
+      for(const f of files.slice(0,Math.max(0,room))){ED.busy=(ED.busy||0)+1;renderEdPhotos();
+        try{const data=await shrink(f);if(ED)ED.photos.push({pid:uid(),data,isNew:true});}catch(x){toast('НЕ ПОЛУЧИЛОСЬ ОТКРЫТЬ ФОТО. ПОПРОБУЙ JPG ИЛИ PNG');}
+        if(ED){ED.busy--;renderEdPhotos();}}});});}
+function renderEdPhotos(){const g=document.getElementById('ePhotos');if(!g||!ED)return;
+  g.innerHTML=ED.photos.map((p,i)=>'<div class="pthumb">'+(p.data?'<img src="'+p.data+'" alt="Фото '+(i+1)+'">':'<span class="pload">…</span>')+'<button type="button" class="pdel" data-act="ed-del" data-i="'+i+'" aria-label="Убрать фото '+(i+1)+'">✕</button></div>').join('')+
+    (ED.busy?'<div class="pthumb"><span class="pload">…</span></div>':'')+
+    (ED.photos.length+(ED.busy||0)<MAX_PHOTOS?'<button type="button" class="padd" data-act="ed-add" aria-label="Добавить фото">+</button>':'');}
 function confirmModal(text,btn,act){openModal('<h3>ТОЧНО?</h3><p style="margin:0">'+text+'</p><div class="row"><button class="btn danger" data-act="'+act+'">'+btn+'</button><button class="btn ghost" data-act="close">ОТМЕНА</button></div>');}
 function shrink(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=()=>{const img=new Image();img.onerror=rej;img.onload=()=>{
   let max=900,q=0.75,out='';for(let k=0;k<6;k++){const sc=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
@@ -765,7 +1098,23 @@ document.addEventListener('click',e=>{
   if(a==='setup'){profileModal(true);return;}
   if(a==='profile'){profileModal(mode==='demo');return;}
   if(a==='quest'){toggleQuest(id);return;}
-  if(a==='del-quest'){const q=S.quests.find(x=>x.id===id);if(q){S.quests=S.quests.filter(x=>x.id!==id);saveCore();render();toast('ЗАДАНИЕ УДАЛЕНО');}return;}
+  if(a==='move'){const q=S.quests.find(x=>x.id===id);if(!q)return;
+    if(q.moves){confirmModal('Это второй перенос. Задание будет провалено: '+signed(-qBase(q.size))+', а за выполнение опыта уже не будет.','ПЕРЕНЕСТИ','do-move');document.querySelector('[data-act="do-move"]').dataset.id=id;}
+    else moveQuest(id);return;}
+  if(a==='do-move'){closeModal();moveQuest(id);return;}
+  if(a==='del-quest'){const q=S.quests.find(x=>x.id===id);if(!q)return;
+    if(!q.done&&!q.failed&&q.moves){confirmModal('Задание уже переносили. Удалить его сейчас — значит провалить: '+signed(-qBase(q.size))+'.','УДАЛИТЬ','do-del-quest');document.querySelector('[data-act="do-del-quest"]').dataset.id=id;}
+    else deleteQuest(id,false);return;}
+  if(a==='do-del-quest'){closeModal();deleteQuest(id,true);return;}
+  if(a==='edit-entry'){entryModal(id);return;}
+  if(a==='view'){openViewer(id,Number(el.dataset.i||0));return;}
+  if(a==='vw-close'){closeViewer();return;}
+  if(a==='vw-prev'){stepViewer(-1);return;}
+  if(a==='vw-next'){stepViewer(1);return;}
+  if(a==='ed-add'){const i=document.getElementById('ePhoto');if(i)i.click();return;}
+  if(a==='ed-del'){if(!ED)return;const p=ED.photos.splice(Number(el.dataset.i),1)[0];if(p&&!p.isNew)ED.removed.push(p.pid);renderEdPhotos();return;}
+  if(a==='w-preset'){const f=el.closest('form'),pr=PRESETS[el.dataset.p];if(!f||!pr)return;
+    ['top','bottom','shoes'].forEach(k=>{const r=f.querySelector('input[name="o-'+k+'"][value="'+pr[k]+'"]');if(r)r.checked=true;});if(f._upd)f._upd();return;}
   if(a==='add-quest'){questModal();return;}
   if(a==='finance'){financeModal();return;}
   if(a==='wardrobe'){wardrobeModal();return;}
@@ -777,7 +1126,7 @@ document.addEventListener('click',e=>{
   if(a==='day'){selDay=selDay===el.dataset.d?null:el.dataset.d;render();return;}
   if(a==='all'){selDay=null;render();return;}
   if(a==='mon'){calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+Number(el.dataset.n),1);render();return;}
-  if(a==='add-entry'){entryModal();return;}
+  if(a==='add-entry'){entryModal(null);return;}
   if(a==='del-entry'){confirmModal('Запись исчезнет из ленты вместе с опытом за неё.','УДАЛИТЬ','do-del-entry');document.querySelector('[data-act="do-del-entry"]').dataset.id=id;return;}
   if(a==='do-del-entry'){removeEvent(id);closeModal();lastRankShown=null;rankCheck();render();toast('ЗАПИСЬ УДАЛЕНА');return;}
   if(a==='reset'){confirmModal('Герой, задания, мечта и вся лента жизни будут удалены без возможности вернуть.','УДАЛИТЬ ВСЁ','do-reset');return;}
@@ -786,9 +1135,9 @@ document.addEventListener('click',e=>{
   if(a==='restore'){const i=document.getElementById('restoreFile');if(i){i.value='';i.click();}return;}
   if(a==='do-restore'){doRestore();return;}
 });
-function doReset(){closeModal();
-  if(N){try{N.clearAll();}catch(e){}}else{try{localStorage.removeItem(LS_KEY);}catch(e){}}
-  Object.keys(PHOTO).forEach(k=>delete PHOTO[k]);
+async function doReset(){closeModal();const evs=S.events.slice();P.resetting=true;clearLocal();
+  if(P.db){clearTimeout(P.timer);try{for(const ev of evs){for(const pid of ev.photos||[])await P.phCol.doc(pid).delete();await P.evCol.doc(ev.id).delete();}await P.prof.delete();}catch(e){dbError(e);}P.dirty=false;}
+  P.resetting=false;Object.keys(PHOTO).forEach(k=>delete PHOTO[k]);
   applyAll(demoState());mode='demo';syncReminders();lastRankShown=null;location.hash='#hero';render();toast('ДАННЫЕ УДАЛЕНЫ');}
 document.addEventListener('submit',e=>{
   const f=e.target;const k=f.dataset.form;if(!k)return;e.preventDefault();
@@ -798,12 +1147,12 @@ document.addEventListener('submit',e=>{
     const sex=(f.querySelector('input[name="sex"]:checked')||{}).value||'m';const look=readLook(f);
     const rem=f.querySelector('#rDaily')?{daily:f.querySelector('#rDaily').checked,deadlines:f.querySelector('#rDead').checked,time:f.querySelector('#rTime').value||'21:00'}:null;
     const askPerm=()=>{if(N&&rem&&(rem.daily||rem.deadlines)&&N.requestNotifications){try{N.requestNotifications();}catch(e){}}};
-    if(mode==='demo'){applyAll(emptyState());S.profile={name,birth,sex,look};if(rem)S.settings={remind:rem};mode='local';
+    if(mode==='demo'){applyAll(emptyState());look.outfit=Object.assign({},PRESETS.casual,{color:0});S.profile={name,birth,sex,look};if(rem)S.settings={remind:rem};mode=P.db?'db':'local';
       addEvent({kind:'start',text:'Герой '+name+' начал свой путь на уровне '+ageAt(parse(birth),today())+'.',xp:0});saveCore();closeModal();lastRankShown=0;location.hash='#hero';view='hero';render();toast('ПУТЬ НАЧАЛСЯ!',true);askPerm();}
-    else{look.gear=(S.profile.look||{}).gear;S.profile={name,birth,sex,look};if(rem)S.settings=Object.assign({},S.settings,{remind:rem});saveCore();askPerm();closeModal();render();toast('ПРОФИЛЬ СОХРАНЁН');}
+    else{look.gear=(S.profile.look||{}).gear;look.outfit=(S.profile.look||{}).outfit;S.profile={name,birth,sex,look};if(rem)S.settings=Object.assign({},S.settings,{remind:rem});saveCore();askPerm();closeModal();render();toast('ПРОФИЛЬ СОХРАНЁН');}
     return;}
   if(k==='finance'){saveFinance(f);return;}
-  if(k==='wardrobe'){S.profile.look=Object.assign({},S.profile.look,{gear:f._read()});saveCore();closeModal();render();toast('СНАРЯЖЕНИЕ НАДЕТО');return;}
+  if(k==='wardrobe'){S.profile.look=Object.assign({},S.profile.look,f._read());saveCore();closeModal();render();toast('ГЕРОЙ ПЕРЕОДЕТ');return;}
   if(k==='quest'){const t=f.querySelector('#qTitle').value.trim(),d=f.querySelector('#qDue').value;
     if(!t){showErr('qErr','Напиши, чего хочешь.');return;}if(!d){showErr('qErr','Выбери срок: без даты желание так и останется желанием.');return;}
     const size=(f.querySelector('input[name="qsize"]:checked')||{}).value||'m';S.quests.push({id:uid(),title:t,due:d,size,done:false});saveCore();closeModal();render();toast('ЗАДАНИЕ ПРИНЯТО');return;}
@@ -813,23 +1162,32 @@ document.addEventListener('submit',e=>{
   if(k==='step'){const t=f.querySelector('#stepText').value.trim(),d=f.querySelector('#stepDue').value;
     if(!t){showErr('stepErr','Опиши шаг.');return;}S.dream.steps.push({id:uid(),text:t,due:d||null,done:false});saveCore();render();setTimeout(()=>{const i=document.getElementById('stepText');if(i)i.focus();},0);return;}
   if(k==='entry'){const d=f.querySelector('#eDate').value,t=f.querySelector('#eText').value.trim();
-    if(!d){showErr('eErr','Выбери дату.');return;}if(!t&&!pendingPhoto){showErr('eErr','Напиши пару слов или добавь фото.');return;}
-    const ev=addEvent({date:d,kind:'manual',text:t,photo:pendingPhoto||undefined});if(!ev.photo)delete ev.photo;
-    pendingPhoto=null;closeModal();render();if(d<=todayIso())gain(ev,'ЗАПИСЬ В ЛЕНТЕ');else toast('ДОБАВЛЕНО В «ВПЕРЕДИ»');return;}
+    if(!ED)return;if(ED.busy){showErr('eErr','Подожди, фото ещё обрабатывается.');return;}
+    if(!d){showErr('eErr','Выбери дату.');return;}if(!t&&!ED.photos.length){showErr('eErr','Напиши пару слов или добавь фото.');return;}
+    const pids=ED.photos.map(p=>p.pid);
+    ED.photos.filter(p=>p.isNew).forEach(p=>putPhoto(p.pid,p.data));ED.removed.forEach(dropPhoto);
+    if(ED.id){const ev=S.events.find(e=>e.id===ED.id);if(ev){ev.date=d;ev.text=t;if(pids.length)ev.photos=pids;else delete ev.photos;saveEvent(ev);}
+      ED=null;closeModal();render();lastRankShown=null;rankCheck(true);toast('ЗАПИСЬ ИЗМЕНЕНА');return;}
+    const o={date:d,kind:'manual',text:t};if(pids.length)o.photos=pids;const ev=addEvent(o);
+    ED=null;closeModal();render();if(d<=todayIso())gain(ev,'ЗАПИСЬ В ЛЕНТЕ');else toast('ДОБАВЛЕНО В «ВПЕРЕДИ»');return;}
   if(k==='stat'){const key=f.dataset.key;const inp=f.querySelector('input');const v=Number(inp.value);
     if(inp.value===''||!isFinite(v)||v<0){inp.focus();toast('ВПИШИ ЧИСЛО');return;}recordStat(key,Math.round(v));return;}
 });
 document.getElementById('restoreFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)readRestore(f);});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.querySelector('.overlay'))closeModal();});
-function route(){const h=(location.hash||'').replace('#','');view=['hero','stats','dream','life'].includes(h)?h:'hero';render();window.scrollTo(0,0);}
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(VW)closeViewer();else if(document.querySelector('.overlay'))closeModal();});
+function checkDay(){const evs=processQuests();if(evs.length){const m=xpMap(),v=evs.reduce((a,e)=>a+(m[e.id]||0),0);
+  const rm=rankCheck(true);toast('ПРОВАЛЕНО ЗАДАНИЙ: '+evs.length+' · '+signed(v)+(rm?' · '+rm:''),false);}}
+function route(){const h=(location.hash||'').replace('#','');view=['hero','stats','dream','life'].includes(h)?h:'hero';checkDay();render();window.scrollTo(0,0);}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.profile){checkDay();render();}});
 window.addEventListener('hashchange',route);
 
 /* ---------- boot ---------- */
 const local=storeLoad();
-if(local&&local.profile){applyAll(local);mode='local';}else{applyAll(demoState());mode='demo';}
+if(local&&local.profile){applyAll(local);mode='local';if(migratePhotos().length)persistEvents();}else{applyAll(demoState());mode='demo';}
 try{lastRankShown=rankIdx(xpOfLevel(heroInfo().age));}catch(e){lastRankShown=0;}
 route();
 syncReminders();
+initCloud();
 })();
 </script>
 </body>
