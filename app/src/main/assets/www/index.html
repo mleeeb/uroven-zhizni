@@ -71,10 +71,39 @@ button{cursor:pointer}
 .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .stage::before{content:"";position:absolute;left:50%;top:6px;width:220px;height:220px;transform:translateX(-50%);background:
   radial-gradient(circle,var(--panel2) 0 1px,transparent 1.5px) 0 0/22px 22px;opacity:.9;pointer-events:none}
-.sprite{position:relative;image-rendering:pixelated;image-rendering:crisp-edges;width:144px;height:198px;animation:bob 1.2s steps(2) infinite}
+.sprite{position:relative;image-rendering:pixelated;image-rendering:crisp-edges;width:auto;height:176px;animation:bob 1.2s steps(2) infinite}
+@media (max-width:400px){.sprite{height:132px}}
 .pedestal{position:relative;width:150px;height:14px;background:var(--steel);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--shadow);margin-top:-6px}
 @keyframes bob{50%{transform:translateY(-4px)}}
 @media (prefers-reduced-motion:reduce){.sprite{animation:none}}
+/* hero card background: 96x88 pixel scene behind name, slots and hero */
+.herocard{position:relative;margin:0 -16px;padding:4px 16px 10px;overflow:hidden}
+.bgcv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;image-rendering:pixelated;image-rendering:crisp-edges;z-index:0}
+.herocard>.hero-head,.herocard>.stage{position:relative;z-index:1}
+.has-bg .stage::before{display:none}
+.has-bg .hero-name,.has-bg .hero-lvl,.has-bg .hero-title{background:rgba(21,24,51,.84);padding:4px 10px;text-shadow:2px 2px 0 var(--shadow)}
+/* wardrobe collection */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin-top:8px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border:3px solid var(--panel2);background:var(--bg2);color:var(--ink);font-family:var(--body);font-size:11px;line-height:1.25;text-align:center;min-width:0}
+.tile canvas{image-rendering:pixelated;image-rendering:crisp-edges;max-width:100%}
+.tile small{font-family:var(--px);font-size:6px;color:var(--dim)}
+.tile[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+.tile.none{justify-content:center;min-height:84px;font-family:var(--px);font-size:7px}
+.bgt{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}
+.bgt .tile canvas{width:96px;height:88px}
+details.theme{border:3px solid var(--panel2);background:var(--bg2);padding:0 10px}
+details.theme+details.theme{margin-top:6px}
+details.theme summary{font-family:var(--px);font-size:8px;line-height:1.6;padding:12px 0;cursor:pointer;color:var(--ink)}
+details.theme[open]{padding-bottom:10px}
+.worn{display:flex;flex-wrap:wrap;gap:6px}
+.worn button{font-family:var(--px);font-size:7px;line-height:1.5;padding:6px 8px;border:2px solid var(--gold);background:none;color:var(--gold);text-align:left}
+/* holidays in the feed calendar */
+.day.hol{box-shadow:inset 0 0 0 2px var(--violet)}
+.day.hol::after{content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;background:var(--violet)}
+.day.sel.hol{box-shadow:inset 0 0 0 2px #6E4691}
+.holiday{display:flex;flex-direction:column;gap:8px;border:3px solid var(--violet);padding:10px 12px;margin-bottom:14px;font-size:14px}
+.holiday b{font-family:var(--px);font-size:8px;color:var(--violet);margin-right:6px}
+.next-hol{font-family:var(--px);font-size:7px;line-height:1.7;color:var(--violet);margin:10px 0 0}
 .gear{display:block;margin:12px auto 4px;background:none;border:0;font-family:var(--px);font-size:8px;line-height:2;color:var(--dim);text-align:center;padding:4px 8px}
 .gear:hover{color:var(--ink)}
 .gear span{color:var(--gold)}
@@ -235,7 +264,7 @@ textarea.field{resize:vertical;min-height:90px}
 .sw span{display:block;width:32px;height:32px;border:3px solid var(--panel2);cursor:pointer}
 .sw input:checked+span{border-color:var(--ink);box-shadow:0 0 0 3px var(--gold)}
 .look{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center}
-.look canvas{width:96px;height:132px;image-rendering:pixelated;background:var(--bg2);border:3px solid var(--panel2)}
+.look canvas{width:auto;height:132px;image-rendering:pixelated;background:var(--bg2);border:3px solid var(--panel2)}
 .photo-prev img{max-width:100%;max-height:200px;border:3px solid var(--ink)}
 .chk{display:flex;gap:10px;align-items:center;font-size:14px}
 .chk input{width:20px;height:20px;accent-color:var(--gold)}
@@ -340,6 +369,7 @@ button.sphchip{cursor:pointer}
 <input type="file" id="restoreFile" accept=".zip,.json,application/zip,application/json" hidden aria-hidden="true">
 <div id="toastRoot"></div>
 
+<script src="hero32.js"></script>
 <script>
 (function(){
 "use strict";
@@ -404,22 +434,15 @@ function wealth(f){
   return o;}
 
 /* ---------- sprite ---------- */
-/* ---------- hero sprite (16 x 22 pixels) ---------- */
-/* The mask names body regions; outfit, hair and gear are painted over it. */
-const HEAD=[
-"................","................","....oooooooo....","...ohhhhhhhho...","...ohhhhhhhho...","...ohssssssho...",
-"...ossEssEsso...","...osssssssso...","...osssMMssso...","....osssssso....",".....oonnoo....."];
-const BODY={
- m:["...ooccccccoo...","..oaccccccccao..","..ofoccccccofo..","..owoccccccowo..","..ooobbbbbbooo..",
-    "....oppppppo....","....olloollo....","....okkookko....","....oeeooeeo....","...ogggoogggo...","...oooo..oooo..."],
- f:["....ooccccoo....","...oaccccccao...","...ofoccccofo...","...owoccccowo...","...ooobbbbooo...",
-    "....oppppppo....","....olloollo....","....okkookko....","....oeeooeeo....","...ogggoogggo...","...oooo..oooo..."]};
+/* ---------- hero sprite (32 x 44 pixels) ---------- */
+/* Pixel data (hero, items, rank gear, pets, backgrounds) lives in hero32.js, generated by tools/eskizy/export_js.py.
+   Colors of skin, hair and the top are placeholders there (S/H/T + shade factor) and are filled in here. */
 const SKIN=['#F2CC8F','#E0AC7E','#B97A56','#7A4E33'];
 const HAIR=['#2B1D14','#6B4226','#C98A3D','#E8D27A','#A33B2E'];
 const SHIRT=['#E07A5F','#3D5A80','#81B29A','#9B6BC9','#D9D4BE'];
+const GREY_HAIR='#C9C9D6';
 const STYLES={sport:'СПОРТ',biz:'ДЕЛОВОЙ',casual:'ПОВСЕДНЕВНЫЙ'};
 const HAIRSTYLES={m:{short:'Короткая',buzz:'Ёжик',bangs:'Чёлка'},f:{long:'Длинные',pony:'Хвост',bob:'Каре'}};
-/* each item: style, name (or {m,f}), how it paints */
 const TOPS={
   tee:{style:'sport',name:'Футболка'},
   hoodie:{style:'sport',name:'Толстовка',long:true},
@@ -429,21 +452,27 @@ const TOPS={
   sweater:{style:'casual',name:'Свитер',long:true},
   dress:{style:'casual',name:'Платье',only:'f'}};
 const BOTTOMS={
-  shorts:{style:'sport',name:'Спортивные шорты',c:'1',short:true},
-  track:{style:'sport',name:'Спортивные штаны',c:'2'},
-  trousers:{style:'biz',name:'Брюки',c:'3'},
-  chinos:{style:'biz',name:{m:'Чиносы',f:'Юбка-карандаш'},c:'4'},
-  jeans:{style:'casual',name:'Джинсы',c:'6'},
-  cshorts:{style:'casual',name:{m:'Шорты',f:'Юбка'},c:'7',short:true}};
+  shorts:{style:'sport',name:'Спортивные шорты'},
+  track:{style:'sport',name:'Спортивные штаны'},
+  trousers:{style:'biz',name:'Брюки'},
+  chinos:{style:'biz',name:{m:'Чиносы',f:'Юбка-карандаш'}},
+  jeans:{style:'casual',name:'Джинсы'},
+  cshorts:{style:'casual',name:{m:'Шорты',f:'Юбка'}}};
 const SHOES={
-  sneakers:{style:'sport',name:'Кроссовки',e:'w',g:'w'},
-  runners:{style:'sport',name:'Беговые',e:'g',g:'w'},
-  oxfords:{style:'biz',name:'Туфли',e:'x',g:'x'},
-  boots:{style:'biz',name:'Ботинки',e:'n',g:'n'},
-  keds:{style:'casual',name:'Кеды',e:'r',g:'w'},
-  hightops:{style:'casual',name:'Высокие кеды',e:'r',g:'w',high:true}};
+  sneakers:{style:'sport',name:'Кроссовки'},
+  runners:{style:'sport',name:'Беговые'},
+  oxfords:{style:'biz',name:'Туфли'},
+  boots:{style:'biz',name:'Ботинки'},
+  keds:{style:'casual',name:'Кеды'},
+  hightops:{style:'casual',name:'Высокие кеды'}};
 const PRESETS={sport:{top:'tee',bottom:'track',shoes:'sneakers'},biz:{top:'shirt',bottom:'trousers',shoes:'oxfords'},casual:{top:'print',bottom:'jeans',shoes:'keds'}};
 const itemName=(it,sex)=>typeof it.name==='string'?it.name:it.name[sex==='f'?'f':'m'];
+/* collection: premium-style items by body slot (worn over the basic outfit) */
+const SLOTS=['head','face','neck','hands','top','bottom','shoes'];
+const SLOT_NAME={head:'ГОЛОВА',face:'ЛИЦО',neck:'ШЕЯ',hands:'РУКИ',top:'ВЕРХ',bottom:'НИЗ',shoes:'ОБУВЬ'};
+const THEME_ORDER=['зима','новый год','весна','лето','осень','14 февраля','23 февраля','8 марта','масленица','пасха','день космонавтики','выпускной','1 сентября','хэллоуин','день рождения','карнавал','китайский','мексиканский','народный','кавказский','индийский','шотландский','баварский','французский','арабский','профессии','спорт','сказка','космос','путешествия','музыка','разное'];
+function themes(sex){const by={};Object.keys(H32.items).forEach(id=>{const it=H32.items[id];if(it.o&&it.o!==sex)return;(by[it.t]=by[it.t]||[]).push(id);});
+  return Object.keys(by).sort((a,b)=>{const i=THEME_ORDER.indexOf(a),j=THEME_ORDER.indexOf(b);return(i<0?99:i)-(j<0?99:j);}).map(t=>({t,ids:by[t]}));}
 function normLook(look,sex){
   const L=Object.assign({skin:0,hair:0,beard:false},look||{});sex=sex==='f'?'f':'m';
   if(!HAIRSTYLES[sex][L.style])L.style=sex==='f'?'long':'short';
@@ -452,70 +481,97 @@ function normLook(look,sex){
   if(!BOTTOMS[o.bottom])o.bottom='jeans';
   if(!SHOES[o.shoes])o.shoes='boots';
   if(!(o.color>=0&&o.color<SHIRT.length))o.color=0;
+  const w=Object.assign({},L.wear||{});SLOTS.forEach(k=>{const it=H32.items[w[k]];if(!it||it.s!==k||(it.o&&it.o!==sex))delete w[k];});
+  Object.keys(w).forEach(k=>{if(!SLOTS.includes(k))delete w[k];});
+  L.wear=w;if(!H32.pets.some(p=>p.id===L.pet))L.pet='';if(!H32.bgs.some(b=>b.id===L.bg))L.bg='';
+  if(L.headPref!=='gear')L.headPref='item';
   L.outfit=o;if(sex==='f')L.beard=false;delete L.shirt;return L;}
 function shade(hex,k){const n=parseInt(hex.slice(1),16);const f=c=>Math.max(0,Math.min(255,Math.round(c*k)));
   return'#'+[n>>16&255,n>>8&255,n&255].map(f).map(v=>v.toString(16).padStart(2,'0')).join('');}
-function heroGrid(look,sex,rIdx){
-  sex=sex==='f'?'f':'m';const L=normLook(look,sex),o=L.outfit;
-  const mask=HEAD.concat(BODY[sex]).map(r=>r.split(''));
-  const top=TOPS[o.top],bot=BOTTOMS[o.bottom],sh=SHOES[o.shoes];
-  const g=mask.map(row=>row.map(r=>{
-    switch(r){
-      case 'o':return'K';case 'h':return'H';case 's':case 'n':case 'w':return'S';case 'E':return'E';
-      case 'M':return sex==='f'?'F':'M';
-      case 'c':case 'b':case 'a':return top===TOPS.shirt&&sex==='m'?'w':top===TOPS.jacket?'j':'T';
-      case 'f':return top.long?(top===TOPS.shirt&&sex==='m'?'w':top===TOPS.jacket?'j':'T'):'S';
-      case 'p':case 'l':return bot.c;
-      case 'k':return bot.short?'S':bot.c;
-      case 'e':return sh.e;case 'g':return sh.g;
-      default:return'.';}}));
-  const set=(x,y,c,onlyEmpty)=>{if(y<0||y>=g.length||x<0||x>15)return;if(onlyEmpty&&g[y][x]!=='.')return;g[y][x]=c;};
-  const row=(y,x0,x1,c)=>{for(let x=x0;x<=x1;x++)set(x,y,c);};
-  const tx0=sex==='f'?6:5,tx1=sex==='f'?9:10;   // torso columns at chest height
-  /* top details */
-  if(o.top==='hoodie'){row(11,tx0,tx1,'t');set(7,12,'w');set(8,12,'w');row(14,7,8,'t');}
-  if(o.top==='shirt'){if(sex==='m'){set(7,11,'T');set(8,11,'T');for(let y=12;y<=14;y++){set(7,y,'T');set(8,y,'T');}}else row(11,tx0,tx1,'w');}
-  if(o.top==='jacket'){row(11,6,9,'w');if(sex==='m'){set(7,11,'T');set(8,11,'T');set(7,12,'T');set(8,12,'T');set(7,13,'T');set(8,13,'T');}else{set(7,12,'w');set(8,12,'w');}}
-  if(o.top==='print'){row(12,7,8,'a');row(13,7,8,'a');}
-  if(o.top==='sweater'){row(11,tx0,tx1,'t');row(13,tx0,tx1,'t');}
-  if(o.top==='dress'){row(15,6,9,'T');row(16,5,10,'T');row(17,4,11,'T');set(3,17,'K');set(12,17,'K');
-    [5,6,9,10].forEach(x=>set(x,18,sh.high?sh.e:'S'));}
-  /* bottom details (a dress hides the bottom) */
-  if(o.top!=='dress'){
-    if(o.bottom==='track'){set(5,17,'w');set(10,17,'w');set(5,18,'w');set(10,18,'w');}
-    if(o.bottom==='chinos'&&sex==='f'){g[16].forEach((c,x)=>{if(c==='4')g[16][x]='3';});row(17,5,10,'3');[5,6,9,10].forEach(x=>set(x,18,'S'));}
-    if(o.bottom==='cshorts'&&sex==='f'){g[16].forEach((c,x)=>{if(c==='7')g[16][x]='8';});row(17,4,11,'8');set(3,17,'K');set(12,17,'K');[5,6,9,10].forEach(x=>set(x,18,'S'));}
-  }
-  if(sh.high)[5,6,9,10].forEach(x=>set(x,18,sh.e));
-  /* hair */
-  const st=L.style;
-  if(st==='buzz')row(4,5,10,'S');
-  if(st==='bangs')row(5,5,8,'H');
-  if(st==='long'){for(let y=5;y<=12;y++){set(3,y,'H');set(12,y,'H');set(2,y,'K');set(13,y,'K');}set(3,13,'K');set(12,13,'K');}
-  if(st==='bob'){row(5,5,10,'H');for(let y=5;y<=9;y++){set(3,y,'H');set(12,y,'H');set(2,y,'K');set(13,y,'K');}set(3,10,'K');set(12,10,'K');}
-  if(st==='pony'){set(12,4,'H');set(12,5,'H');set(13,3,'K');for(let y=4;y<=9;y++){set(13,y,'H');set(14,y,'K');}set(13,10,'K');}
-  if(sex==='f'){set(5,6,'E');set(10,6,'E');}
-  if(L.beard&&sex==='m'){[4,5,10,11].forEach(x=>set(x,8,'H'));for(let x=5;x<=10;x++)set(x,9,'H');}
-  /* gear earned this year */
-  const G=gearOf(L);
-  if(rIdx>=1&&G.head==='band'){row(4,4,11,'R');}
-  if(rIdx>=1&&G.head==='cap'){row(2,4,11,'Q');row(3,3,12,'Q');row(4,8,14,'Q');}
-  if(rIdx>=2&&G.back==='cape'){for(let y=11;y<=18;y++)[1,2,13,14].forEach(x=>set(x,y,'C',true));}
-  if(rIdx>=2&&G.back==='pack'){for(let y=11;y<=17;y++)[0,1,2].forEach(x=>set(x,y,'G',true));}
-  if(rIdx>=3&&G.hand==='sword'){for(let y=6;y<=12;y++)set(14,y,'W');set(13,13,'Y');set(14,13,'Y');set(15,13,'Y');set(14,14,'N');}
-  if(rIdx>=3&&G.hand==='dumbbell'){for(let y=12;y<=16;y++)set(14,y,'W');[10,11,17,18].forEach(y=>{for(let x=13;x<=15;x++)set(x,y,'D');});}
-  if(rIdx>=4&&G.top==='crown'){[4,7,8,11].forEach(x=>set(x,0,'Y'));row(1,4,11,'Y');}
-  if(rIdx>=4&&G.top==='wreath'){[3,5,7,8,10,12].forEach(x=>set(x,1,'L'));[2,13].forEach(x=>{set(x,2,'L');set(x,3,'L');});}
+const H32A='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+,-/:;<=>?@[]^_{|}';
+const _layerCache=[];
+function h32Layer(i){if(_layerCache[i])return _layerCache[i];const loc=H32.L[i][0],px=[];
+  H32.L[i][1].forEach(r=>{const y=r[0],x0=r[1],s=r[2];for(let j=0;j<s.length;j++){const ch=s[j];if(ch==='.')continue;px.push(x0+j,y,ch==='~'?-1:loc[H32A.indexOf(ch)]);}});
+  return _layerCache[i]=px;}
+function h32Pal(skin,hair,top){return H32.P.map(t=>t[0]==='#'?t:shade(t[0]==='S'?skin:t[0]==='H'?hair:top,Number(t.slice(1))));}
+function putLayer(g,gw,gh,li,ox,oy,behind){if(li==null)return;const px=h32Layer(li);
+  for(let i=0;i<px.length;i+=3){const x=px[i]+ox,y=px[i+1]+oy;if(x<0||y<0||x>=gw||y>=gh)continue;const k=y*gw+x;if(behind&&g[k]!==-1)continue;g[k]=px[i+2];}}
+const variantOf=(it,sex,sleeve)=>it?(sleeve==='long'&&it.v[sex+'/l']!=null?it.v[sex+'/l']:it.v[sex]):null;
+/* layer order: base, shoes under/over trousers, bottom, top, backpack straps, hands, hand gear, neck, front strands of long hair, face, head, award, things behind the back, pet */
+function heroGrid(look,sex,rIdx,gw,withPet){
+  sex=sex==='f'?'f':'m';const L=normLook(look,sex),o=L.outfit,w=L.wear,G=gearOf(L);
+  const pick=slot=>w[slot]?H32.items[w[slot]]:(H32.basic[slot==='top'?o.top:slot==='bottom'?o.bottom:o.shoes]||null);
+  const top=pick('top'),bot=pick('bottom'),sho=pick('shoes'),sleeve=top&&top.sl?top.sl:'short';
+  const pet=withPet&&L.pet?H32.pets.find(p=>p.id===L.pet):null;
+  const ox=pet?0:Math.floor((gw-32)/2),g=new Int16Array(gw*44).fill(-1);
+  const P=it=>putLayer(g,gw,44,variantOf(it,sex,sleeve),ox,0);
+  putLayer(g,gw,44,H32.base[sex+'/'+L.style+(sex==='m'&&L.beard?'/b':'')],ox,0);
+  if(variantOf(sho,sex,sleeve)!=null)for(let y=39;y<44;y++)for(let x=5;x<27;x++)g[y*gw+x+ox]=-1;
+  const under=sho&&(!sho.tl||(bot&&bot.l));
+  if(under)P(sho);P(bot);if(sho&&!under)P(sho);
+  P(top);
+  if(rIdx>=2&&G.back==='pack')P(H32.gear.pack_front);
+  if(w.hands)P(H32.items[w.hands]);
+  if(rIdx>=3&&G.hand!=='none')P(H32.gear[G.hand]);
+  if(w.neck)P(H32.items[w.neck]);
+  putLayer(g,gw,44,H32.hf[sex+'/'+L.style],ox,0);
+  if(w.face)P(H32.items[w.face]);
+  const gearHead=rIdx>=1&&G.head!=='none';
+  if(w.head&&!(gearHead&&L.headPref==='gear'))P(H32.items[w.head]);else if(gearHead)P(H32.gear[G.head]);
+  if(rIdx>=4&&G.top!=='none')P(H32.gear[G.top]);
+  if(rIdx>=2&&G.back!=='none')putLayer(g,gw,44,variantOf(H32.gear[G.back],sex,sleeve),ox,0,true);
+  if(pet)putLayer(g,gw,44,pet.L,30,27);
   return{g,L};}
+function paintGrid(cv,g,gw,gh,pal){const s=cv.height/gh,ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);ctx.imageSmoothingEnabled=false;
+  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){const c=g[y*gw+x];if(c<0)continue;ctx.fillStyle=pal[c];ctx.fillRect(x*s,y*s,s,s);}}
+/* canvas 32 cells wide: hero only; 48 cells wide: room for a pet at the feet */
 function drawHero(cv,look,age,rIdx,sex){
-  const r=heroGrid(look,sex,rIdx),g=r.g,L=r.L,topC=SHIRT[L.outfit.color];
-  const pal={K:'#0C0E22',S:SKIN[L.skin||0],H:age>=55?'#C9C9D6':HAIR[L.hair||0],E:'#0C0E22',M:'#8E3B46',F:'#C2546A',
-    T:topC,t:shade(topC,0.72),w:'#E8E6DA',j:'#33395A',a:'#F2CC8F',
-    '1':'#22263F','2':'#4A4F6E','3':'#2A2D45','4':'#C2A878','6':'#3D5A80','7':'#B8A27A','8':'#B5485A',
-    x:'#1E1A22',r:'#C4473F',g:'#4FA88A',n:'#6B4A30',
-    Q:'#6C9BD8',G:'#8A6A3B',D:'#9AA0C0',L:'#81B29A',R:'#E07A5F',C:'#8E3B46',W:'#DDE1EE',Y:'#F2CC8F',N:'#6B4226'};
-  const s=cv.width/16,ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);ctx.imageSmoothingEnabled=false;
-  g.forEach((row,y)=>row.forEach((c,x)=>{if(c==='.')return;ctx.fillStyle=pal[c]||'#FF00FF';ctx.fillRect(x*s,y*s,s,s);}));}
+  const gw=Math.round(cv.width/(cv.height/44)),r=heroGrid(look,sex,rIdx,gw,gw>=48),L=r.L;
+  paintGrid(cv,r.g,gw,44,h32Pal(SKIN[L.skin||0],age>=55?GREY_HAIR:HAIR[L.hair||0],SHIRT[L.outfit.color]));}
+function drawPet(cv,id){const p=H32.pets.find(x=>x.id===id);if(!p)return;const g=new Int16Array(18*17).fill(-1);putLayer(g,18,17,p.L,0,0);paintGrid(cv,g,18,17,H32.P);}
+/* ---------- backgrounds: a 96 x 88 pixel scene behind the whole hero card, with light animation ---------- */
+const _bgImg={};
+function bgImage(id){const b=H32.bgs.find(x=>x.id===id);if(!b)return null;if(!_bgImg[id]){const im=new Image();im.src=b.png;_bgImg[id]=im;}return _bgImg[id];}
+function drawBgStill(cv,id){const im=bgImage(id);if(!im)return;const go=()=>{const c=cv.getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,cv.width,cv.height);c.drawImage(im,0,0,cv.width,cv.height);};
+  if(im.complete&&im.naturalWidth)go();else im.addEventListener('load',go,{once:true});}
+let bgTimer=null;
+function stopBg(){if(bgTimer){clearTimeout(bgTimer);bgTimer=null;}}
+function startBg(cv,id){stopBg();const b=H32.bgs.find(x=>x.id===id),im=bgImage(id);if(!b||!im)return;
+  const run=()=>{const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.drawImage(im,0,0);
+    const still=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;if(still||!b.fx.length)return;
+    const fx=b.fx.map(f=>bgFx(f,ctx));
+    const tick=()=>{if(!cv.isConnected){bgTimer=null;return;}ctx.drawImage(im,0,0);fx.forEach(f=>f(ctx));bgTimer=setTimeout(tick,130);};tick();};
+  if(im.complete&&im.naturalWidth)run();else im.addEventListener('load',run,{once:true});}
+function bgFx(f,ctx0){const R=Math.random,type=f[0],W=96,H=88,dot=(c,x,y,col,s)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),s||1,s||1);};
+  if(type==='fall'){const[,n,cols,vy,sway,size]=f;const p=Array.from({length:n},()=>({x:R()*W,y:R()*H,c:cols[Math.floor(R()*cols.length)],ph:R()*6,v:vy*(0.6+R()*0.8)}));
+    return c=>p.forEach(q=>{q.y+=q.v;q.ph+=0.25;q.x+=Math.sin(q.ph)*sway;if(q.y>H){q.y=-2;q.x=R()*W;}if(q.x<0)q.x+=W;if(q.x>W)q.x-=W;
+      if(size>1){dot(c,q.x,q.y,q.c);dot(c,q.x+1,q.y+1,q.c);}else dot(c,q.x,q.y,q.c);});}
+  if(type==='rise'){const[,n,cols,vy,y0,y1,kind,cx]=f;const mk=()=>({x:cx!=null?cx-3+R()*7:R()*W,y:y0+R()*(y1-y0),c:cols[Math.floor(R()*cols.length)],v:vy*(0.6+R()*0.8),ph:R()*6});
+    const p=Array.from({length:n},mk);
+    return c=>p.forEach((q,i)=>{q.y-=q.v;q.ph+=0.3;q.x+=Math.sin(q.ph)*0.3;if(q.y<y0||(kind==='ember'&&q.y<y1-14)){p[i]=mk();p[i].y=y1;return;}
+      if(kind==='spark'&&Math.sin(q.ph*2)<0)return;dot(c,q.x,q.y,q.c);if(!kind)dot(c,q.x+1,q.y-1,'#FFFFFF');});}
+  if(type==='twinkle'){const[,n,y0,y1]=f;const p=Array.from({length:n},()=>({x:R()*W,y:y0+R()*(y1-y0),t:Math.floor(R()*20)}));
+    return c=>p.forEach(q=>{q.t++;if(q.t>24){q.t=0;q.x=R()*W;q.y=y0+R()*(y1-y0);}if(q.t<6){dot(c,q.x,q.y,'#FFFFFF');if(q.t>1&&q.t<4){dot(c,q.x-1,q.y,'#B3B2CC');dot(c,q.x+1,q.y,'#B3B2CC');dot(c,q.x,q.y-1,'#B3B2CC');dot(c,q.x,q.y+1,'#B3B2CC');}}});}
+  if(type==='shoot'){let s=null;return c=>{if(!s&&R()<0.02)s={x:R()*60,y:R()*20,t:0};if(!s)return;s.t++;for(let k=0;k<4;k++)dot(c,s.x+s.t*3-k*2,s.y+s.t*1.5-k,k?'#B3B2CC':'#FFFFFF');if(s.t>12)s=null;};}
+  if(type==='sparkle'){const[,n,y0,y1,col]=f;const p=Array.from({length:n},()=>({x:R()*W,y:y0+Math.floor(R()*(y1-y0)),t:Math.floor(R()*12)}));
+    return c=>p.forEach(q=>{q.t++;if(q.t>12){q.t=0;q.x=R()*W;q.y=y0+Math.floor(R()*(y1-y0));}if(q.t<5){dot(c,q.x,q.y,col);dot(c,q.x+1,q.y,col);}});}
+  if(type==='drift'){const[,n,cols,vx,y0,y1,kind]=f;const p=Array.from({length:n},()=>({x:R()*W,y:y0+R()*(y1-y0),c:cols[Math.floor(R()*cols.length)],v:vx*(0.7+R()*0.6),t:0}));
+    return c=>p.forEach(q=>{q.x+=q.v;q.t++;if(q.x>W+3){q.x=-3;q.y=y0+R()*(y1-y0);}
+      if(kind==='bird'){const up=q.t%4<2;dot(c,q.x,q.y,q.c);dot(c,q.x-1,q.y+(up?-1:0),q.c);dot(c,q.x+1,q.y+(up?-1:0),q.c);}
+      else{q.y+=Math.sin(q.t*0.7)*0.3;dot(c,q.x,q.y,q.c);}});}
+  if(type==='fly'){const[,n,cols,y0,y1,kind]=f;const p=Array.from({length:n},()=>({x:20+R()*56,y:y0+R()*(y1-y0),a:R()*6,c:cols[Math.floor(R()*cols.length)],t:Math.floor(R()*10)}));
+    return c=>p.forEach(q=>{q.t++;q.a+=(R()-0.5)*0.9;q.x+=Math.cos(q.a)*0.8;q.y+=Math.sin(q.a)*0.5;if(q.x<2||q.x>W-3)q.a+=Math.PI;if(q.y<y0||q.y>y1)q.a=-q.a;
+      if(kind==='firefly'){if(q.t%10<6){dot(c,q.x,q.y,q.c);}return;}
+      if(kind==='bee'){dot(c,q.x,q.y,q.c);dot(c,q.x+1,q.y,'#1E1A22');if(q.t%2)dot(c,q.x,q.y-1,'#F4F1DE');return;}
+      const open=q.t%2;dot(c,q.x,q.y,'#3A281C');dot(c,q.x-1,q.y-(open?1:0),q.c);dot(c,q.x+1,q.y-(open?1:0),q.c);});}
+  if(type==='shimmer'){const[,n,y0,y1,cols]=f;const p=Array.from({length:n},()=>({x:R()*W,y:y0+R()*(y1-y0),t:Math.floor(R()*8)}));
+    return c=>p.forEach(q=>{q.t++;if(q.t>8){q.t=0;q.x=R()*W;q.y=y0+R()*(y1-y0);}if(q.t<4){dot(c,q.x,q.y,cols[q.t%cols.length]);dot(c,q.x,q.y+1,cols[(q.t+1)%cols.length]);}});}
+  if(type==='windows'){const d=ctx0.getImageData(0,0,W,H).data,lit=[];for(let y=0;y<70;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4;if(d[i]>220&&d[i+1]>150&&d[i+2]<170&&d[i+2]>60)lit.push([x,y]);}
+    const off=new Map();return c=>{if(lit.length&&R()<0.5){const k=Math.floor(R()*lit.length);off.set(k,8+Math.floor(R()*20));}
+      off.forEach((t,k)=>{dot(c,lit[k][0],lit[k][1],'#262A4E');t--;if(t<=0)off.delete(k);else off.set(k,t);});};}
+  if(type==='fire'){const[,cx,cy]=f;return c=>{const h=5+Math.floor(R()*3);for(let y=0;y<h;y++){const w=Math.max(0,Math.round((h-y)/2-0.5+(R()<0.3?1:0)));
+      for(let x=-w;x<=w;x++)dot(c,cx+x+(y>3&&R()<0.4?(R()<0.5?-1:1):0),cy-1-y,Math.abs(x)<1&&y<h-1?'#F8E08A':Math.abs(x)<2?'#E8943A':'#E0473F');}};}
+  return()=>{};}
 
 /* ---------- state ---------- */
 let S=emptyState();let mode='demo';let view='hero';let calMonth=null;let selDay=null;let lastRankShown=null;
@@ -523,7 +579,7 @@ function emptyState(){return{profile:null,stats:{squat:[],push:[],plank:[],cal:[
 function demoState(){
   const t=today(),d=n=>iso(addDays(t,n));
   const marks=(days,from,skip)=>{const m={};for(let i=from;i<=0;i++){const ds=d(i);if(days.includes(((parse(ds).getDay()+6)%7)+1)&&!skip.includes(i))m[ds]=1;}return m;};
-  return{profile:{name:'Герой',birth:iso(new Date(t.getFullYear()-28,t.getMonth()+4,12)),sex:'m',look:{skin:0,hair:1,style:'short',beard:false,outfit:{top:'print',bottom:'jeans',shoes:'keds',color:0}}},
+  return{profile:{name:'Герой',birth:iso(new Date(t.getFullYear()-28,t.getMonth()+4,12)),sex:'m',look:{skin:0,hair:1,style:'short',beard:false,outfit:{top:'print',bottom:'jeans',shoes:'keds',color:0},wear:{head:'ushanka',neck:'scarf'},pet:'cat',bg:'snow'}},
     stats:{squat:[{d:d(-200),v:36},{d:d(-120),v:40},{d:d(-20),v:44}],push:[{d:d(-150),v:18},{d:d(-40),v:22}],plank:[{d:d(-90),v:55},{d:d(-15),v:75}],
       cal:[-6,-5,-4,-3,-2,-1,0].map((n,i)=>({d:d(n),v:[420,380,510,260,610,450,390][i]}))},
     quests:[{id:'q1',title:'Прыгнуть с парашютом',due:d(214),size:'l',sphere:'fun',done:false},{id:'q2',title:'Пробежать полумарафон',due:d(45),size:'m',sphere:'health',done:false},{id:'q3',title:'Съездить на Байкал зимой',due:d(98),size:'l',sphere:'fun',done:false},
@@ -984,7 +1040,8 @@ function render(){
   const v=document.getElementById('view');
   if(!S.profile){v.innerHTML='';return;}
   v.innerHTML=view==='stats'?viewStats():view==='dream'?viewDream():view==='life'?viewLife():viewHero();
-  if(view==='hero'){const cv=document.getElementById('heroCanvas');const h=heroInfo();drawHero(cv,S.profile.look||{},h.age,rankIdx(xpOfLevel(h.age)),S.profile.sex);}
+  if(view==='hero'){const cv=document.getElementById('heroCanvas');const h=heroInfo();drawHero(cv,S.profile.look||{},h.age,rankIdx(xpOfLevel(h.age)),S.profile.sex);
+    const bc=document.getElementById('bgCv');if(bc)startBg(bc,normLook(S.profile.look,S.profile.sex).bg);else stopBg();}else stopBg();
 }
 function dueText(due,done){if(done||!due)return'';const n=diffDays(today(),parse(due));
   if(n<0)return'<span class="late">ПРОСРОЧЕНО НА '+(-n)+' '+plural(-n,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span>';
@@ -1026,8 +1083,9 @@ function viewHero(){
   const active=S.quests.filter(q=>!q.done).sort((a,b)=>(a.failed?0:1)-(b.failed?0:1)||((a.due||'9999')<(b.due||'9999')?-1:1));const qc=questCounts(h.age);
   const done=S.quests.filter(q=>q.done).sort((a,b)=>a.doneAt<b.doneAt?1:-1);
   const dr=S.dream;const dDone=dr?dr.steps.filter(s=>s.done).length:0,dTot=dr?dr.steps.length:0;const tt=yearTitle(spherePoints(h.age));
-  return'<section class="hero-head"><div class="hero-name">'+esc(S.profile.name).toUpperCase()+'</div><div class="hero-lvl">УРОВЕНЬ<b>'+h.age+'</b></div>'+(tt?'<a class="hero-title" href="#stats" style="color:'+tt.color+'">'+tt.t+'</a>':'')+'</section>'+
-  '<div class="stage">'+slotsHtml('left')+'<div class="center"><canvas id="heroCanvas" class="sprite" width="144" height="198" role="img" aria-label="Пиксельный персонаж, уровень '+h.age+'"></canvas><div class="pedestal"></div></div>'+slotsHtml('right')+'</div>'+
+  const LK=normLook(S.profile.look,S.profile.sex);
+  return'<div class="herocard'+(LK.bg?' has-bg':'')+'">'+(LK.bg?'<canvas id="bgCv" class="bgcv" width="96" height="88" aria-hidden="true"></canvas>':'')+'<section class="hero-head"><div class="hero-name">'+esc(S.profile.name).toUpperCase()+'</div><div class="hero-lvl">УРОВЕНЬ<b>'+h.age+'</b></div>'+(tt?'<a class="hero-title" href="#stats" style="color:'+tt.color+'">'+tt.t+'</a>':'')+'</section>'+
+  '<div class="stage">'+slotsHtml('left')+'<div class="center"><canvas id="heroCanvas" class="sprite" width="'+(LK.pet?192:128)+'" height="176" role="img" aria-label="Пиксельный персонаж, уровень '+h.age+(LK.pet?', рядом питомец':'')+'"></canvas><div class="pedestal"></div></div>'+slotsHtml('right')+'</div></div>'+
   '<button class="gear" data-act="wardrobe">'+(ri>0&&gear?'СНАРЯЖЕНИЕ: <span>'+gear.toUpperCase()+'</span><br>':'')+'ГАРДЕРОБ ►</button>'+
   '<div class="meters">'+
     '<div class="mlabel">ДО УРОВНЯ '+(h.age+1)+'<span>'+h.left+' '+plural(h.left,'ДЕНЬ','ДНЯ','ДНЕЙ')+'</span></div>'+
@@ -1148,6 +1206,28 @@ const IC_SEARCH=px(8,8,[[2,0],[3,0],[4,0],[1,1],[5,1],[0,2],[6,2],[0,3],[6,3],[0
 const byDateDesc=(a,b)=>a.date===b.date?(b.c||0)-(a.c||0):(a.date<b.date?1:-1);
 
 /* ---------- Лента: feed, search and notes ---------- */
+/* ---------- holidays: ring on the calendar day, name in the day view, link to themed items ---------- */
+const HOL_FIXED={'01-01':['Новый год','новый год'],'01-07':['Рождество','новый год'],'02-14':['День святого Валентина','14 февраля'],'02-23':['23 Февраля','23 февраля'],
+  '03-08':['8 Марта','8 марта'],'04-01':['День смеха',''],'04-12':['День космонавтики','день космонавтики'],'05-01':['Праздник весны и труда','весна'],'05-09':['День Победы',''],
+  '06-01':['День защиты детей','лето'],'06-12':['День России',''],'09-01':['День знаний','1 сентября'],'10-31':['Хэллоуин','хэллоуин'],'11-04':['День народного единства',''],'12-31':['Новогодняя ночь','новый год']};
+const CNY={2024:'02-10',2025:'01-29',2026:'02-17',2027:'02-06',2028:'01-26',2029:'02-13',2030:'02-03',2031:'01-23',2032:'02-11',2033:'01-31',2034:'02-19',2035:'02-08'};
+function easterOrth(y){const a=y%4,b=y%7,c=y%19,d=(19*c+15)%30,e=(2*a+4*b-d+34)%7,m=Math.floor((d+e+114)/31),dd=(d+e+114)%31+1;return addDays(new Date(y,m-1,dd),13);}
+function easterWest(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,
+  l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);return new Date(y,Math.floor((h+l-7*m+114)/31)-1,(h+l-7*m+114)%31+1);}
+const _hol={};
+function holYear(y){if(_hol[y])return _hol[y];const H={},add=(d,n,t)=>{const k=typeof d==='string'?d:iso(d);(H[k]=H[k]||[]).push({n,t});};
+  Object.keys(HOL_FIXED).forEach(md=>add(y+'-'+md,HOL_FIXED[md][0],HOL_FIXED[md][1]));
+  const eo=easterOrth(y);add(eo,'Пасха','пасха');for(let i=55;i>=49;i--)add(addDays(eo,-i),i===49?'Масленица: проводы зимы':'Масленичная неделя','масленица');
+  const ew=easterWest(y);for(let i=51;i>=47;i--)add(addDays(ew,-i),'Карнавал','карнавал');
+  if(CNY[y])add(y+'-'+CNY[y],'Китайский Новый год','китайский');
+  const pr=new Date(y,5,30);while(pr.getDay()!==6)pr.setDate(pr.getDate()-1);add(pr,'Выпускной','выпускной');
+  return _hol[y]=H;}
+function holidaysOn(ds){const l=(holYear(Number(ds.slice(0,4)))[ds]||[]).slice();
+  if(S.profile&&S.profile.birth&&S.profile.birth.slice(5)===ds.slice(5))l.push({n:'День рождения героя',t:'день рождения'});return l;}
+const themeHasItems=t=>!!t&&Object.keys(H32.items).some(id=>H32.items[id].t===t);
+function nextHoliday(from){for(let i=0;i<200;i++){const d=iso(addDays(parse(from),i)),l=holidaysOn(d);if(l.length)return{d,i,l};}return null;}
+function holidayBox(ds){const l=holidaysOn(ds);if(!l.length)return'';const th=l.find(x=>themeHasItems(x.t));
+  return'<div class="holiday">'+l.map(x=>'<div><b>ПРАЗДНИК</b>'+esc(x.n)+'</div>').join('')+(th?'<button class="btn ghost" data-act="wardrobe" data-t="'+esc(th.t)+'">ВЕЩИ К ПРАЗДНИКУ ►</button>':'')+'</div>';}
 function viewLife(){
   XM=xpMap();
   return'<div class="lifebar"><div class="lseg"><button class="segbtn'+(LF.mode==='feed'?' on':'')+'" data-act="life-mode" data-m="feed">ЛЕНТА</button><button class="segbtn'+(LF.mode==='notes'?' on':'')+'" data-act="life-mode" data-m="notes">ЗАМЕТКИ</button></div>'+
@@ -1174,12 +1254,14 @@ function lifeList(){
   let cells='';WD.forEach(w=>cells+='<div class="wd">'+w+'</div>');
   for(let i=0;i<first;i++)cells+='<div class="day out" aria-hidden="true"></div>';
   for(let d=1;d<=dim;d++){const ds=iso(new Date(y,mo,d));const evs=byDay[ds]||[];
-    cells+='<button class="day'+(ds===tIso?' today':'')+(ds===selDay?' sel':'')+'" data-act="day" data-d="'+ds+'" aria-label="'+d+' '+MON_GEN[mo]+(evs.length?', записей: '+evs.length:'')+'">'+d+(evs.length?'<span class="dots">'+evs.slice(0,4).map(e=>'<i class="k-'+(ds>tIso?'plan':e.kind)+'"></i>').join('')+'</span>':'')+'</button>';}
+const hol=holidaysOn(ds);
+    cells+='<button class="day'+(ds===tIso?' today':'')+(ds===selDay?' sel':'')+(hol.length?' hol':'')+'" data-act="day" data-d="'+ds+'" aria-label="'+d+' '+MON_GEN[mo]+(hol.length?', праздник: '+hol.map(x=>x.n).join(', '):'')+(evs.length?', записей: '+evs.length:'')+'">'+d+(evs.length?'<span class="dots">'+evs.slice(0,4).map(e=>'<i class="k-'+(ds>tIso?'plan':e.kind)+'"></i>').join('')+'</span>':'')+'</button>';}
   html+='<section class="box"><div class="cal-head"><button class="navbtn" data-act="mon" data-n="-1" aria-label="Предыдущий месяц">◄</button><span class="px">'+MON_NOM[mo]+' '+y+'</span><button class="navbtn" data-act="mon" data-n="1" aria-label="Следующий месяц">►</button></div><div class="cal">'+cells+'</div>'+
+    (()=>{const nh=nextHoliday(tIso);return nh?'<p class="next-hol">'+(nh.i===0?'СЕГОДНЯ: ':'БЛИЖАЙШИЙ ПРАЗДНИК: ')+esc(nh.l.map(x=>x.n).join(', ').toUpperCase())+(nh.i?' · ЧЕРЕЗ '+nh.i+' '+plural(nh.i,'ДЕНЬ','ДНЯ','ДНЕЙ'):'')+'</p>':'';})()+
     (selDay?'<button class="btn wide" data-act="add-entry">+ ЗАПИСЬ НА '+esc(fmtDate(selDay)).toUpperCase()+'</button>':'')+'</section>';
   const sorted=shown.slice().sort(byDateDesc);
   if(selDay){const list=sorted.filter(e=>e.date===selDay);
-    return html+'<div class="lvl-sep"><span>'+esc(fmtDate(selDay)).toUpperCase()+'</span></div><button class="btn ghost wide" data-act="all" style="margin-bottom:14px">ПОКАЗАТЬ ВСЮ ЛЕНТУ</button>'+
+    return html+'<div class="lvl-sep"><span>'+esc(fmtDate(selDay)).toUpperCase()+'</span></div><button class="btn ghost wide" data-act="all" style="margin-bottom:14px">ПОКАЗАТЬ ВСЮ ЛЕНТУ</button>'+holidayBox(selDay)+
       (list.length?list.map(entryHtml).join(''):'<div class="empty"><p class="muted">В этот день записей нет. Было что-то хорошее? Запиши, пока помнишь.</p></div>');}
   const fut=sorted.filter(e=>e.date>tIso).reverse(),past=sorted.filter(e=>e.date<=tIso);
   if(fut.length)html+='<div class="lvl-sep"><span>ВПЕРЕДИ</span></div>'+fut.map(entryHtml).join('');
@@ -1279,26 +1361,46 @@ function questModal(pre){pre=pre||{};openModal('<h3>НОВОЕ ЗАДАНИЕ</h
 function dreamModal(){const d=S.dream||{title:'',why:''};openModal('<h3>МОЯ МЕЧТА</h3><form data-form="dream" style="display:flex;flex-direction:column;gap:14px"><label class="lbl">МЕЧТА<input class="field" id="dTitle" maxlength="120" value="'+esc(d.title)+'" placeholder="Подняться на Эльбрус" autofocus></label>'+
   '<label class="lbl">ЗАЧЕМ ОНА МНЕ<textarea class="field" id="dWhy" maxlength="400" placeholder="Что изменится, когда она сбудется?">'+esc(d.why)+'</textarea></label>'+sphereField('dSph',d.sphere)+'<p class="muted">Шаги к мечте и сама мечта засчитаются в эту сферу.</p><p class="err" id="dErr" hidden></p>'+
   '<div class="row"><button class="btn" type="submit">СОХРАНИТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>');}
-function wardrobeModal(){
+function wardrobeModal(openTheme){
   const h=heroInfo(),ri=rankIdx(xpOfLevel(h.age)),sex=S.profile.sex,L=normLook(S.profile.look,sex),o=L.outfit,g=gearOf(L),r=RANKS[ri];
   const optGrid=(name,items,cur)=>'<div class="optgrid">'+Object.keys(items).filter(k=>!items[k].only||items[k].only===sex).map(k=>
     '<label><input type="radio" name="'+name+'" value="'+k+'"'+(k===cur?' checked':'')+'><span>'+itemName(items[k],sex).toUpperCase()+'<small>'+STYLES[items[k].style]+'</small></span></label>').join('')+'</div>';
   const gearRows=Object.keys(GEAR).map(k=>{const G=GEAR[k],open=ri>=G.rank;
     return'<div class="lbl">'+G.label+(open?'':' · ОТКРОЕТСЯ НА РАНГЕ '+RANKS[G.rank].r)+'<div class="seg">'+Object.keys(G.opts).map(v=>'<label><input type="radio" name="g-'+k+'" value="'+v+'"'+(g[k]===v?' checked':'')+(open?'':' disabled')+'><span'+(open?'':' style="opacity:.45"')+'>'+G.opts[v].toUpperCase()+'</span></label>').join('')+'</div></div>';}).join('');
   openModal('<h3>ГАРДЕРОБ</h3>'+
-    '<form data-form="wardrobe" style="display:flex;flex-direction:column;gap:14px"><div class="look"><canvas id="wardCv" width="96" height="132" aria-label="Предпросмотр героя"></canvas><p class="muted">Одежда доступна вся и сразу, вещи из разных стилей можно смешивать.</p></div>'+
+    '<form data-form="wardrobe" style="display:flex;flex-direction:column;gap:14px"><div class="look"><canvas id="wardCv" width="144" height="132" aria-label="Предпросмотр героя"></canvas><p class="muted">Одежда доступна вся и сразу, вещи из разных стилей можно смешивать.</p></div>'+
     '<div class="lbl">СТИЛЬ ЦЕЛИКОМ<div class="seg">'+Object.keys(PRESETS).map(k=>'<button type="button" class="presetbtn" data-act="w-preset" data-p="'+k+'">'+STYLES[k]+'</button>').join('')+'</div></div>'+
     '<div class="lbl">ВЕРХ'+optGrid('o-top',TOPS,o.top)+'</div>'+
     '<div class="lbl">ЦВЕТ ВЕРХА'+swatches('o-color',SHIRT,o.color)+'</div>'+
     '<div class="lbl" id="botBlock">НИЗ<span id="dressNote" class="muted" style="font-family:var(--body)"'+(o.top==='dress'?'':' hidden')+'>Платье закрывает низ.</span>'+optGrid('o-bottom',BOTTOMS,o.bottom)+'</div>'+
     '<div class="lbl">ОБУВЬ'+optGrid('o-shoes',SHOES,o.shoes)+'</div>'+
+    '<div class="sec-title" style="margin:8px 0 0">КОЛЛЕКЦИЯ</div><p class="muted">Вещи надеваются поверх основной одежды: одна на каждое место (голова, лицо, шея, руки, верх, низ, обувь). Нажми, чтобы надеть, ещё раз, чтобы снять.</p><div class="worn" id="wornList"></div>'+
+    '<div>'+themes(sex).map(T=>'<details class="theme" data-t="'+esc(T.t)+'"'+(T.t===openTheme?' open':'')+'><summary>'+esc(T.t.toUpperCase())+' · '+T.ids.length+'</summary><div class="tiles">'+
+      T.ids.map(id=>'<button type="button" class="tile" data-act="w-item" data-id="'+id+'" aria-pressed="false"><canvas width="64" height="88" aria-hidden="true"></canvas><span>'+esc(H32.items[id].n)+'</span><small>'+SLOT_NAME[H32.items[id].s]+'</small></button>').join('')+'</div></details>').join('')+'</div>'+
+    '<div class="sec-title" style="margin:8px 0 0">ПИТОМЕЦ</div><div class="tiles"><button type="button" class="tile none" data-act="w-pet" data-id="" aria-pressed="false">БЕЗ ПИТОМЦА</button>'+
+      H32.pets.map(pt=>'<button type="button" class="tile" data-act="w-pet" data-id="'+pt.id+'" aria-pressed="false"><canvas width="54" height="51" aria-hidden="true"></canvas><span>'+esc(pt.n)+'</span></button>').join('')+'</div>'+
+    '<div class="sec-title" style="margin:8px 0 0">ФОН КАРТОЧКИ</div><p class="muted">Сцена за героем на главном экране, с лёгкой анимацией.</p><div class="tiles bgt"><button type="button" class="tile none" data-act="w-bg" data-id="" aria-pressed="false">БЕЗ ФОНА</button>'+
+      H32.bgs.map(b=>'<button type="button" class="tile" data-act="w-bg" data-id="'+b.id+'" aria-pressed="false"><canvas width="96" height="88" aria-hidden="true"></canvas><span>'+esc(b.n)+'</span></button>').join('')+'</div>'+
     '<div class="sec-title" style="margin:8px 0 0">СНАРЯЖЕНИЕ ГОДА</div><p class="muted">Сейчас ранг года '+r.r+' («'+r.name+'»). Каждый ранг открывает новое место для вещи. В день рождения начинается новый год: снаряжение нужно заработать снова, а выбор вещей сохранится.</p>'+gearRows+
+    '<div class="lbl">ЕСЛИ НАДЕТЫ И ШАПКА ИЗ КОЛЛЕКЦИИ, И СНАРЯЖЕНИЕ НА ГОЛОВУ<div class="seg"><label><input type="radio" name="w-hp" value="item"'+(L.headPref!=='gear'?' checked':'')+'><span>ШАПКА</span></label><label><input type="radio" name="w-hp" value="gear"'+(L.headPref==='gear'?' checked':'')+'><span>СНАРЯЖЕНИЕ</span></label></div></div>'+
     '<div class="row"><button class="btn" type="submit">НАДЕТЬ</button><button class="btn ghost" type="button" data-act="close">ОТМЕНА</button></div></form>',
   root=>{const form=root.querySelector('form');const val=n=>(form.querySelector('input[name="'+n+'"]:checked')||{}).value;
     const read=()=>{const gr={};Object.keys(GEAR).forEach(k=>{gr[k]=val('g-'+k)||g[k];});
-      return{gear:gr,outfit:{top:val('o-top')||o.top,bottom:val('o-bottom')||o.bottom,shoes:val('o-shoes')||o.shoes,color:Number(val('o-color')||0)}};};
-    const upd=()=>{const x=read();form.querySelector('#dressNote').hidden=x.outfit.top!=='dress';drawHero(root.querySelector('#wardCv'),Object.assign({},L,x),h.age,ri,sex);};
-    form.addEventListener('change',upd);form._read=read;form._upd=upd;upd();});}
+      return{gear:gr,outfit:{top:val('o-top')||o.top,bottom:val('o-bottom')||o.bottom,shoes:val('o-shoes')||o.shoes,color:Number(val('o-color')||0)},
+        wear:Object.assign({},st.wear),pet:st.pet,bg:st.bg,headPref:val('w-hp')||L.headPref};};
+    const st={wear:Object.assign({},L.wear),pet:L.pet,bg:L.bg};form._st=st;
+    const thumbs=det=>det.querySelectorAll('.tile[data-act="w-item"]').forEach(b=>{const cv=b.querySelector('canvas');if(cv._done)return;cv._done=1;
+      const it=H32.items[b.dataset.id],x=read();drawHero(cv,Object.assign({},L,x,{wear:Object.assign({},x.wear,{[it.s]:b.dataset.id}),pet:''}),h.age,0,sex);});
+    form.querySelectorAll('details.theme').forEach(d=>{d.addEventListener('toggle',()=>{if(d.open)thumbs(d);});if(d.open)thumbs(d);});
+    form.querySelectorAll('.tile[data-act="w-pet"] canvas').forEach(cv=>drawPet(cv,cv.parentNode.dataset.id));
+    form.querySelectorAll('.tile[data-act="w-bg"] canvas').forEach(cv=>drawBgStill(cv,cv.parentNode.dataset.id));
+    const upd=()=>{const x=read();form.querySelector('#dressNote').hidden=x.outfit.top!=='dress'&&!(x.wear.top&&H32.items[x.wear.top].l);drawHero(root.querySelector('#wardCv'),Object.assign({},L,x),h.age,ri,sex);
+      form.querySelectorAll('.tile[data-act="w-item"]').forEach(b=>b.setAttribute('aria-pressed',String(st.wear[H32.items[b.dataset.id].s]===b.dataset.id)));
+      form.querySelectorAll('.tile[data-act="w-pet"]').forEach(b=>b.setAttribute('aria-pressed',String(st.pet===b.dataset.id)));
+      form.querySelectorAll('.tile[data-act="w-bg"]').forEach(b=>b.setAttribute('aria-pressed',String(st.bg===b.dataset.id)));
+      const wl=SLOTS.filter(k=>st.wear[k]);form.querySelector('#wornList').innerHTML=wl.length?wl.map(k=>'<button type="button" data-act="w-off" data-s="'+k+'" aria-label="Снять: '+esc(H32.items[st.wear[k]].n)+'">'+SLOT_NAME[k]+': '+esc(H32.items[st.wear[k]].n.toUpperCase())+' ✕</button>').join(''):'<p class="muted" style="margin:0">Из коллекции ничего не надето.</p>';};
+    form.addEventListener('change',upd);form._read=read;form._upd=upd;upd();
+    if(openTheme){const d=form.querySelector('details.theme[open]');if(d)setTimeout(()=>d.scrollIntoView({block:'start'}),50);}});}
 function financeModal(){const f=S.fin||{people:1,home:'own'};const c=f.car||{};const nv=v=>v!=null&&v!==''?v:'';
   openModal('<h3>ДОСТАТОК</h3><form data-form="finance" novalidate style="display:flex;flex-direction:column;gap:14px">'+
   '<label class="lbl">МОЙ ДОХОД В МЕСЯЦ НА РУКИ, ₽<input class="field" id="fIncome" type="number" inputmode="numeric" min="0" step="any" value="'+nv(f.income)+'" placeholder="85000" autofocus></label>'+
@@ -1419,7 +1521,13 @@ document.addEventListener('click',e=>{
   if(a==='lf-sphere'){const k=el.dataset.s;LF.sphere=LF.sphere===k&&view==='life'?null:k;LF.mode='feed';LF.open=true;if(view!=='life')location.hash='#life';else{render();window.scrollTo(0,0);}return;}
   if(a==='lf-first'){LF.type='first';LF.mode='feed';LF.open=true;if(view!=='life')location.hash='#life';else{render();window.scrollTo(0,0);}return;}
   if(a==='finance'){financeModal();return;}
-  if(a==='wardrobe'){wardrobeModal();return;}
+  if(a==='wardrobe'){wardrobeModal(el.dataset.t);return;}
+  if(a==='w-item'||a==='w-off'||a==='w-pet'||a==='w-bg'){const f=el.closest('form');if(!f||!f._st)return;const st=f._st;
+    if(a==='w-item'){const it=H32.items[el.dataset.id];if(st.wear[it.s]===el.dataset.id)delete st.wear[it.s];else st.wear[it.s]=el.dataset.id;}
+    if(a==='w-off')delete st.wear[el.dataset.s];
+    if(a==='w-pet')st.pet=el.dataset.id;
+    if(a==='w-bg')st.bg=el.dataset.id;
+    f._upd();return;}
   if(a==='step'){toggleStep(id);return;}
   if(a==='del-step'){if(S.dream){S.dream.steps=S.dream.steps.filter(s=>s.id!==id);saveCore();render();}return;}
   if(a==='edit-dream'){dreamModal();return;}

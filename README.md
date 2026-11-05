@@ -17,6 +17,8 @@
 ## Как устроен проект
 
 - `app/src/main/assets/www/index.html` — сама игра (HTML, CSS, JavaScript).
+- `app/src/main/assets/www/hero32.js` — пиксели героя 32 × 44, вещей коллекции, питомцев и фонов; генерируется `tools/eskizy/export_js.py`.
+- `tools/eskizy/` — код эскизов (Python + Pillow), из которого нарисован герой и вещи.
 - `app/src/main/java/ru/urovenzhizni/app/` — Android-часть: экран с WebView, хранение файлов, резервная копия, напоминания.
 - `.github/workflows/build.yml` — GitHub собирает APK при каждом изменении и выкладывает его в Releases.
 
